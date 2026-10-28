@@ -206,3 +206,23 @@ body.showexp .sitem.day em{display:block}
 }
 .dayline{margin:4px 0 8px;padding:8px 12px;border-radius:12px;background:var(--chip);font-size:13.5px;line-height:1.6}
 .nodelabel{fill:#2b2622;paint-order:stroke;stroke:rgba(255,255,255,.95);stroke-width:3.5px;stroke-linejoin:round;font-weight:600}
+
+.ic{width:1.15em;height:1.15em;vertical-align:-.2em;margin-right:4px;flex:none}
+.sgroup{margin-top:6px}
+.sgh{display:flex;align-items:center;gap:4px}
+.sgh .sitem.hd{flex:1;font-weight:700}
+.gtog{border:0;background:var(--chip);color:var(--ink);border-radius:8px;width:28px;height:28px;cursor:pointer;font-size:14px;flex:none}
+.gbody{margin:2px 0 4px 6px;padding-left:6px;border-left:2px solid var(--line)}
+.sitem.sub{padding:6px 10px;font-size:13px}
+[id^="x-"],#stats{scroll-margin-top:64px}
+@media(min-width:1100px){
+  #sideclose{display:inline-block!important}
+  body.sidecollapsed #side{transform:translateX(-102%)}
+  body.sidecollapsed.hasside{padding-left:0}
+  body.sidecollapsed #btnMenu{display:inline-block}
+}
+
+.mvrow{display:flex;align-items:center;gap:8px;margin:-4px 0;padding:0 6px}
+.mvline{flex:1;border-top:2px dashed var(--line)}
+.mvrow .move{margin:6px 0;padding:4px 14px;border:1px solid var(--line);background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.06);font-weight:600;font-size:13px}
+.mvrow .move.editable{min-width:8em}

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>115 東京名古屋旅記</title>
-<link rel="stylesheet" href="style.css?v=202610281454">
+<link rel="stylesheet" href="style.css?v=202610281458">
 </head>
 <body>
 <header class="top">
@@ -12,7 +12,7 @@
   <div class="sub" id="hsub">2026/10/17 ~ 10/24 · 8 天旅遊紀錄</div>
 </header>
 <div class="bar"><div>
-  <nav><a href="#/" id="nHome" class="on">🗺️ 行程總覽</a><a href="expenses.html">💰 花費分析</a></nav>
+  <nav><a href="#/" id="nHome" class="on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>行程總覽</a><a href="expenses.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8l3 4 3-4M8.5 12.5h7M8.5 15.5h7M12 12v6"/></svg>花費分析</a></nav>
   <label class="sw"><input type="checkbox" id="tExp"><i></i>花費</label>
   <label class="sw"><input type="checkbox" id="tPp"><i></i>主角 🔒</label>
   <button class="btn" id="btnEdit">✏️<span class="lb"> 編輯</span></button>
@@ -27,10 +27,10 @@
   <div class="err" id="pwe"></div>
   <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn" id="pwc">取消</button><button class="btn pri">確認</button></div>
 </form></div>
-<script src="data.js?v=202610281454"></script>
-<script src="expenses.js?v=202610281454"></script>
-<script src="moves.js?v=202610281454"></script>
-<script src="app.js?v=202610281454"></script>
+<script src="data.js?v=202610281458"></script>
+<script src="expenses.js?v=202610281458"></script>
+<script src="moves.js?v=202610281458"></script>
+<script src="app.js?v=202610281458"></script>
 <script>
 const EX=EXPBY();
 const DEF_COVER={1:'d1s1_1',2:'d2s1_1',3:'d3s7_4',4:'d4s1_0',5:'d5s3_0',6:'d6s3_0',7:'d7s2_3',8:'d8s5_2'};
@@ -181,13 +181,17 @@ function itemHTML(s,it,j){
   const ctl=edit?`<div class="pctl"><button data-act="up" data-s="${s.id}" data-i="${j}">◀</button><button data-act="down" data-s="${s.id}" data-i="${j}">▶</button><button data-act="lock" data-s="${s.id}" data-i="${j}" title="${it.locked?'解除鎖定':'鎖定為主角照片'}">${it.locked?'🔒':'🔓'}</button><button data-act="del" data-s="${s.id}" data-i="${j}">🗑</button></div>`:'';
   return `<div class="ph${it.locked?' lk':''}"${it.locked?' hidden':''}>${img}${ctl}</div>`;
 }
+function moveHTML(s,first){
+  const edit=document.body.classList.contains('edit');
+  if(!s.move&&!edit)return '';
+  return `<div class="mvrow${first?' first':''}"><span class="mvline"></span><div class="move${edit?' editable':''}"${edit?' contenteditable="true"':''} data-move="${s.id}" data-ph="${first?'出發方式':'從上一站怎麼過來'}，例如：🚶 步行 5 分">${esc(s.move||'')}</div><span class="mvline"></span></div>`;
+}
 function spotHTML(d,s,i){
   const edit=document.body.classList.contains('edit');
   const exps=s.exp.map(x=>EX[x]);
   return `<section class="spot" id="${s.id}">
     <div class="t">${s.time}</div>
     <h3><span class="num" style="background:${COLORS[d-1]}">${i+1}</span><span class="sname${edit?' editable':''}"${edit?' contenteditable="true"':''} data-name="${s.id}">${esc(s.name)}</span>${s.items.some(x=>x.locked)?` <button class="lkicon" title="這裡有主角照片，點一下輸入密碼查看">🔒<small> 主角照片</small></button>`:''}</h3>
-    ${(s.move||edit)?`<div class="move${edit?' editable':''}"${edit?' contenteditable="true"':''} data-move="${s.id}" data-ph="移動方式，例如：🚶 步行 5 分">${esc(s.move||'')}</div>`:''}
     ${edit?`<textarea class="memo" data-id="${s.id}" placeholder="寫下這個地方的回憶…">${esc(s.memo)}</textarea>`:`<div class="memo ${s.memo?'':'empty'}">${s.memo?esc(s.memo):'（還沒有備註）'}</div>`}
     ${(s.items.length||edit)?`<div class="grid" data-sid="${s.id}">${s.items.map((it,j)=>itemHTML(s,it,j)).join('')}</div>`:''}
     ${edit?`<div class="addrow"><label class="btn">＋ 新增照片<input type="file" accept="image/*" multiple hidden class="addph" data-s="${s.id}"></label>
@@ -206,7 +210,7 @@ function renderDay(d,keepScroll){
   <div class="dayline" data-title="i${d}">${esc(titleOf('i'+d,(window.DAYINFO||{})[d]||''))}</div>
   <div class="stats"><div class="stat only-exp"><b>${nt(sumTWD(dayExp(d)))}</b><span>本日花費（台幣）</span></div></div>
   <div id="dmap" class="cmap"></div>
-  <div id="spots">${sp.map((s,i)=>spotHTML(d,s,i)).join('')}</div>
+  <div id="spots">${sp.map((s,i)=>moveHTML(s,i===0)+spotHTML(d,s,i)).join('')}</div>
   ${navHTML(d)}`;
   cuteMap($('#dmap'),d);
   $$('textarea.memo').forEach(t=>t.oninput=()=>{sp.find(x=>x.id===t.dataset.id).memo=t.value});

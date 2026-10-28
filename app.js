@@ -226,16 +226,29 @@ function bindEdit(rerender){
   $('#btnSave').onclick=saveNotes;
 }
 
-/* ---------- 側邊欄（電腦版固定在左側，手機版從左滑出）---------- */
+/* ---------- 側邊欄（電腦版固定在左側，手機版從左滑出；群組與整個側邊欄都可以收合）---------- */
+const IC_MAP='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>',IC_COIN='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8l3 4 3-4M8.5 12.5h7M8.5 15.5h7M12 12v6"/></svg>';
+const EXP_SECTIONS=[['stats','📊 總覽數字'],['x-filter','🔎 篩選'],['x-pie','🥧 類別占比'],['x-line','📈 累計走勢'],['x-day','📅 依天數／時段'],['x-shop','🏪 幣別與商家'],['x-top','🏆 最大 10 筆'],['x-table','🧾 明細']];
+const gOpen=g=>lstore.get('sideg_'+g,'1')==='1';
+const isWide=()=>window.matchMedia('(min-width:1100px)').matches;
+function toggleSide(){
+  if(isWide()){const c=document.body.classList.toggle('sidecollapsed');lstore.set('sidecollapsed',c?'1':'0')}
+  else document.body.classList.toggle('sideopen');
+}
 function initSide(){
   if($('#side'))return;
   document.body.classList.add('hasside');
+  if(lstore.get('sidecollapsed','0')==='1')document.body.classList.add('sidecollapsed');
   const bar=$('.bar>div');
-  if(bar){const b=document.createElement('button');b.className='btn';b.id='btnMenu';b.textContent='☰';b.title='選單';bar.prepend(b);b.onclick=()=>document.body.classList.toggle('sideopen')}
+  if(bar){const b=document.createElement('button');b.className='btn';b.id='btnMenu';b.textContent='☰';b.title='選單';bar.prepend(b);b.onclick=toggleSide}
   const mask=document.createElement('div');mask.id='sidemask';mask.onclick=()=>document.body.classList.remove('sideopen');
   const side=document.createElement('aside');side.id='side';
   document.body.append(mask,side);
-  side.addEventListener('click',e=>{if(e.target.closest('a'))document.body.classList.remove('sideopen')});
+  side.addEventListener('click',e=>{
+    const t=e.target.closest('.gtog');
+    if(t){const g=t.dataset.g;lstore.set('sideg_'+g,gOpen(g)?'0':'1');updateSide();return}
+    if(e.target.closest('a')&&!isWide())document.body.classList.remove('sideopen');
+  });
   window.addEventListener('hashchange',updateSide);
   updateSide();
 }
@@ -244,17 +257,17 @@ function updateSide(){
   const onExp=/expenses\.html/.test(location.pathname);
   const m=location.hash.match(/#\/day\/(\d)/);const cur=m?+m[1]:0;
   const exp=window.EXPENSES||[];
-  side.innerHTML=`<div class="sidehd"><b>🧳 旅程選單</b><button class="btn" id="sideclose">✕</button></div>
-  <a class="sitem ${!onExp&&!cur?'on':''}" href="index.html#/">🗺️ 行程總覽</a>
-  <div class="sgrp">每日行程</div>
-  ${T.days.map(d=>`<a class="sitem day ${!onExp&&cur===d.day?'on':''}" href="index.html#/day/${d.day}" style="--c:${COLORS[d.day-1]}"><i>${d.day}</i><span><b>${d.date}</b><small>${esc(titleOf('d'+d.day,d.title))}</small></span><em class="only-exp">${nt(sumTWD(exp.filter(e=>e.day===d.day)))}</em></a>`).join('')}
-  <div class="sgrp">分析</div>
-  <a class="sitem ${onExp?'on':''}" href="expenses.html">💰 花費分析</a>
-  <div class="sgrp">工具</div>
+  const grp=(g,head,body)=>`<div class="sgroup"><div class="sgh">${head}<button class="gtog" data-g="${g}" title="${gOpen(g)?'收合':'展開'}">${gOpen(g)?'▾':'▸'}</button></div>${gOpen(g)?`<div class="gbody">${body}</div>`:''}</div>`;
+  side.innerHTML=`<div class="sidehd"><b>🧳 旅程選單</b><button class="btn" id="sideclose" title="收起側邊欄">«</button></div>`+
+  grp('home',`<a class="sitem hd ${!onExp&&!cur?'on':''}" href="index.html#/">${IC_MAP}行程總覽</a>`,
+    T.days.map(d=>`<a class="sitem day ${!onExp&&cur===d.day?'on':''}" href="index.html#/day/${d.day}" style="--c:${COLORS[d.day-1]}"><i>${d.day}</i><span><b>${d.date}</b><small>${esc(titleOf('d'+d.day,d.title))}</small></span><em class="only-exp">${nt(sumTWD(exp.filter(e=>e.day===d.day)))}</em></a>`).join(''))+
+  grp('exp',`<a class="sitem hd ${onExp?'on':''}" href="expenses.html">${IC_COIN}花費分析</a>`,
+    EXP_SECTIONS.map(([id,t])=>`<a class="sitem sub" href="expenses.html#${id}">${t}</a>`).join(''))+
+  `<div class="sgrp">工具</div>
   <button class="sitem" id="sEdit">✏️ 編輯模式（備註／照片／標題／移動方式）</button>
   <div class="sitem static">日圓匯率 <input id="sRate" type="number" step="0.001" min="0.05" max="1" value="${RATE}"></div>
   <div class="sitem static small">主角照片、花費明細的開關在上方列。花費是依匯率換算成台幣統計。</div>`;
-  $('#sideclose').onclick=()=>document.body.classList.remove('sideopen');
+  $('#sideclose').onclick=()=>{if(isWide()){document.body.classList.add('sidecollapsed');lstore.set('sidecollapsed','1')}else document.body.classList.remove('sideopen')};
   $('#sEdit').onclick=()=>{document.body.classList.remove('sideopen');const b=$('#btnEdit');if(b)b.click();else location.href='index.html#/'};
   $('#sRate').onchange=e=>{const v=parseFloat(e.target.value);if(v>0){RATE=v;lstore.set('rate',v);window.dispatchEvent(new Event('ratechange'))}};
 }
