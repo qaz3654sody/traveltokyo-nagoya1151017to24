@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>115 東京名古屋旅記</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1 id="h1">115 東京 – 名古屋 ❤️</h1>
+  <div class="sub" id="hsub">2026/10/17 ~ 10/24 · 8 天旅遊紀錄</div>
+</header>
+<div class="bar"><div>
+  <nav><a href="#/" id="nHome" class="on">總覽</a><a href="expenses.html">💰 花費分析</a></nav>
+  <label class="sw"><input type="checkbox" id="tExp"><i></i>花費</label>
+  <label class="sw"><input type="checkbox" id="tPp"><i></i>主角 🔒</label>
+  <button class="btn" id="btnEdit">✏️<span class="lb"> 編輯</span></button>
+</div></div>
+<main id="app"></main>
+<div id="savebar"><span class="sub" id="savemsg">編輯中，改完記得儲存</span><button class="btn pri" id="btnSave">💾 儲存</button></div>
+<div id="cp"><div class="cpbox"><b id="cpt"></b> <button class="btn" id="cpx">取消</button><div id="cpg" class="grid"></div></div></div>
+<div id="lb"><button class="prev">‹</button><img alt=""><button class="next">›</button></div>
+<div id="pw"><form id="pwf">
+  <b>請輸入密碼</b><p class="sub" style="margin:4px 0 10px">輸入後才會顯示主角照片／進入編輯</p>
+  <input type="password" id="pwi" inputmode="numeric" autocomplete="off">
+  <div class="err" id="pwe"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn" id="pwc">取消</button><button class="btn pri">確認</button></div>
+</form></div>
+<script src="data.js"></script>
+<script src="expenses.js"></script>
+<script src="app.js"></script>
+<script>
+const EX=EXPBY();
+const DEF_COVER={1:'d1s1_1',2:'d2s1_1',3:'d3s7_4',4:'d4s1_0',5:'d5s3_0',6:'d6s3_0',7:'d7s2_3',8:'d8s5_2'};
+const spotsOf=d=>T.days[d-1].spots;
+const plain=s=>s.items.filter(i=>!i.locked);
+const coverItem=d=>{
+  const id=(T.covers&&T.covers[d])||DEF_COVER[d];
+  const all=spotsOf(d).flatMap(plain);
+  return all.find(i=>i.id===id)||all[0];
+};
+const dayExp=d=>spotsOf(d).flatMap(s=>s.exp.map(i=>EX[i]));
+const geo=s=>s.lat!=null&&s.lon!=null&&s.lat>30;
+const shortDate=d=>T.days[d-1].date;
+
+/* ---------- 景點小圖示 ---------- */
+const ICONS=[[/HAPUNA|早餐/,'🍳'],[/機場|Airport|HND|TSA|NGO|TPE/,'✈️'],[/新幹線|站 →|名鐵|機場站/,'🚄'],[/飯店|王子|京阪/,'🏨'],
+ [/名古屋城/,'🏯'],[/晴空塔|電視塔|鐵塔/,'🗼'],[/富士|新倉山|大石|忍野|河口湖|富士山/,'🗻'],[/白川|飛驒|高山/,'🏘️'],[/吉卜力/,'🌳'],
+ [/神宮|增上寺|三解脫門|淺草寺|雷門/,'⛩️'],[/八公/,'🐕'],[/公園|綠洲/,'🌃'],
+ [/喫茶|客美多|HARBS|茶和和|星巴克|BUTTER/,'☕'],[/燒肉|敘敘苑|牛|拉麵|獅子丸|豬排|味噌|鰻|蓬萊軒|半藏|神座|金富士|仙貝|洋芋片|Jaga/,'🍜'],
+ [/寶可夢|迪士尼|哈利波特/,'🎮'],[/Bic|UNIQLO|唐吉訶德|松本清|3COINS|大創|PLUSTA/,'🛍️'],[/京急|超市|OK|Life|全家|MaxValu|羅森|日川/,'🛒'],[/家/,'🏠']];
+const iconOf=n=>{for(const [r,e] of ICONS)if(r.test(n))return e;return '📍'};
+
+/* ---------- 可愛版示意地圖（只看相對位置）---------- */
+function cuteMap(el,d){
+  const sp=spotsOf(d),W=Math.max(300,el.clientWidth||340),pad=38,minD=64,H=Math.min(500,300+spotsOf(d).length*22);
+  const pts=sp.map((s,i)=>({s,i,ok:geo(s)})).filter(p=>p.ok);
+  if(!pts.length){el.innerHTML='<div class="sub" style="padding:20px">這一天沒有地圖</div>';return}
+  const k=Math.cos(36*Math.PI/180);
+  pts.forEach(p=>{p.x=p.s.lon*k;p.y=-p.s.lat});
+  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const sc=Math.min((W-2*pad)/Math.max(x1-x0,1e-4),(H-2*pad)/Math.max(y1-y0,1e-4));
+  const ox=(W-(x1-x0)*sc)/2,oy=(H-(y1-y0)*sc)/2;
+  pts.forEach((p,n)=>{p.x=ox+(p.x-x0)*sc+((n*37)%7-3)*.3;p.y=oy+(p.y-y0)*sc+((n*53)%7-3)*.3});
+  for(let it=0;it<400;it++){
+    for(let a=0;a<pts.length;a++)for(let b=a+1;b<pts.length;b++){
+      let dx=(pts[b].x-pts[a].x)/1.35,dy=pts[b].y-pts[a].y,dist=Math.hypot(dx,dy);
+      if(dist<minD){if(dist<.01){dx=Math.cos(a*2.4);dy=Math.sin(a*2.4);dist=1}const f=(minD-dist)/2/dist;
+        pts[a].x-=dx*f*1.35;pts[a].y-=dy*f;pts[b].x+=dx*f*1.35;pts[b].y+=dy*f}
+    }
+    pts.forEach(p=>{p.x=Math.min(W-pad,Math.max(pad,p.x));p.y=Math.min(H-pad-8,Math.max(pad,p.y))});
+  }
+  const col=COLORS[d-1];
+  let path='';
+  pts.forEach((p,i)=>{
+    if(i===0){path=`M${p.x},${p.y}`;return}
+    const q=pts[i-1],mx=(q.x+p.x)/2,my=(q.y+p.y)/2,nx=-(p.y-q.y)*.18,ny=(p.x-q.x)*.18;
+    path+=` Q${mx+nx},${my+ny} ${p.x},${p.y}`;
+  });
+  const cols=Math.floor(W/28),rows=Math.floor(H/28);
+  const dots=Array.from({length:cols*rows},(_,i)=>`<circle cx="${(i%cols)*28+14}" cy="${Math.floor(i/cols)*28+14}" r="1.4" fill="var(--mapdot)"/>`).join('');
+  const label=s=>{const t=s.name.replace(/[（(].*$/,'').replace(/^.*?→\s*/,'');return t.length>7?t.slice(0,6)+'…':t};
+  el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="示意地圖">
+    <rect width="${W}" height="${H}" rx="18" fill="var(--mapbg)"/>${dots}
+    <ellipse cx="${W*.15}" cy="${H*.2}" rx="60" ry="24" fill="#fff" opacity=".45"/><ellipse cx="${W*.85}" cy="${H*.82}" rx="70" ry="26" fill="#fff" opacity=".4"/>
+    <path d="${path}" fill="none" stroke="${col}" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="2 9" opacity=".8"/>
+    ${pts.map(p=>`<g class="pin" data-sid="${p.s.id}" transform="translate(${p.x},${p.y})" style="cursor:pointer">
+      <circle r="17" fill="#fff" stroke="${col}" stroke-width="3"/>
+      <text y="6" text-anchor="middle" font-size="17">${iconOf(p.s.name)}</text>
+      <circle cx="13" cy="-13" r="8.5" fill="${col}" stroke="#fff" stroke-width="1.5"/>
+      <text x="13" y="-9.3" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff">${p.i+1}</text>
+      <text y="33" text-anchor="middle" font-size="11" font-weight="600" class="plabel">${esc(label(p.s))}</text>
+    </g>`).join('')}
+  </svg>`;
+  $$('.pin',el).forEach(g=>g.onclick=()=>{const t=document.getElementById(g.dataset.sid);t&&t.scrollIntoView({behavior:'smooth'})});
+}
+
+/* ---------- 首頁 ---------- */
+function renderHome(){
+  $('#nHome').classList.add('on');
+  const total=T.days.reduce((a,d)=>a+d.spots.length,0);
+  const photos=T.days.reduce((a,d)=>a+d.spots.reduce((b,s)=>b+s.items.length,0),0);
+  const all=window.EXPENSES||[];
+  $('#app').innerHTML=`
+  <div class="stats">
+    <div class="stat"><b>8</b><span>天</span></div>
+    <div class="stat"><b>${total}</b><span>個景點／停留點</span></div>
+    <div class="stat"><b>${photos}</b><span>張精選照片</span></div>
+    <div class="stat only-exp"><b>${nt(sumTWD(all))}</b><span>總花費（日圓以 ${RATE} 換算）</span></div>
+  </div>
+  <div class="flow">
+    <div class="fnode">🇹🇼 台北</div><span class="farr">✈️</span>
+    <div class="fnode">🗼 東京<small>Day 1–4</small></div><span class="farr">🚄</span>
+    <div class="fnode">🏯 名古屋<small>Day 5–8</small></div><span class="farr">✈️</span>
+    <div class="fnode">🏠 回家</div>
+  </div>
+  <div class="stepper">${T.days.map(d=>`<a class="step" href="#/day/${d.day}" style="--c:${COLORS[d.day-1]}">
+    <i>${d.day}</i><b>${d.date.split(' ')[0]}</b><span>${esc(titleOf('d'+d.day,d.title))}</span></a>`).join('')}</div>
+  <div class="dgrid">${T.days.map(d=>{
+    const c=coverItem(d.day);
+    return `<a class="dcard" href="#/day/${d.day}">${c?`<img loading="lazy" src="${srcThumb(c)}">`:''}<button class="btn only-edit cbtn" data-cover="${d.day}">🖼 換封面</button><div><b style="color:${COLORS[d.day-1]}">Day ${d.day} · ${d.date}</b>${esc(titleOf('d'+d.day,d.title))}<br><small>${d.spots.length} 個停留點</small><span class="dx">${nt(sumTWD(dayExp(d.day)))}</span></div></a>`}).join('')}</div>`;
+  $$('[data-cover]').forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();pickCover(+b.dataset.cover)});
+}
+function pickCover(d){
+  const ph=spotsOf(d).flatMap(plain);const cur=coverItem(d);
+  $('#cpg').innerHTML=ph.map(p=>`<img src="${srcThumb(p)}" data-p="${p.id}" class="${cur&&p.id===cur.id?'sel':''}">`).join('');
+  $('#cp').style.display='flex';$('#cpt').textContent=`Day ${d} 封面：點選一張照片`;
+  $('#cpg').onclick=e=>{const p=e.target.dataset.p;if(!p)return;T.covers=T.covers||{};T.covers[d]=p;$('#cp').style.display='none';renderHome()};
+  $('#cpx').onclick=()=>$('#cp').style.display='none';
+}
+
+/* ---------- 每日頁 ---------- */
+function navHTML(d){
+  const prev=d>1?`<a class="nbtn" href="#/day/${d-1}"><small>前一天</small>‹ ${shortDate(d-1)}</a>`:'<span></span>';
+  const next=d<8?`<a class="nbtn r" href="#/day/${d+1}"><small>下一天</small>${shortDate(d+1)} ›</a>`:'<span></span>';
+  return `<div class="daynav">${prev}<a class="nbtn home" href="#/">🏠<small>總覽</small></a>${next}</div>`;
+}
+function itemHTML(s,it,j){
+  const edit=document.body.classList.contains('edit');
+  const img=it.locked?`<img class="pp" data-id="${it.id}" hidden>`:`<img loading="lazy" data-full="${srcFull(it)}" src="${srcThumb(it)}">`;
+  const ctl=edit?`<div class="pctl"><button data-act="up" data-s="${s.id}" data-i="${j}">◀</button><button data-act="down" data-s="${s.id}" data-i="${j}">▶</button><button data-act="lock" data-s="${s.id}" data-i="${j}" title="${it.locked?'解除鎖定':'鎖定為主角照片'}">${it.locked?'🔒':'🔓'}</button><button data-act="del" data-s="${s.id}" data-i="${j}">🗑</button></div>`:'';
+  return `<div class="ph${it.locked?' lk':''}"${it.locked?' hidden':''}>${img}${ctl}</div>`;
+}
+function spotHTML(d,s,i){
+  const edit=document.body.classList.contains('edit');
+  const exps=s.exp.map(x=>EX[x]);
+  return `<section class="spot" id="${s.id}">
+    <div class="t">${s.time}</div>
+    <h3><span class="num" style="background:${COLORS[d-1]}">${i+1}</span>${esc(s.name)}</h3>
+    ${edit?`<textarea class="memo" data-id="${s.id}" placeholder="寫下這個地方的回憶…">${esc(s.memo)}</textarea>`:`<div class="memo ${s.memo?'':'empty'}">${s.memo?esc(s.memo):'（還沒有備註）'}</div>`}
+    ${(s.items.length||edit)?`<div class="grid" data-sid="${s.id}">${s.items.map((it,j)=>itemHTML(s,it,j)).join('')}</div>`:''}
+    ${edit?`<div class="addrow"><label class="btn">＋ 新增照片<input type="file" accept="image/*" multiple hidden class="addph" data-s="${s.id}"></label>
+      <label class="sw"><input type="checkbox" class="newlock"><i></i>新增為主角照片（鎖定）</label></div>`:''}
+    ${exps.length?`<div class="exp">${exps.map(e=>`<div><span>${esc(e.name||e.shop||e.sub)}${e.name&&e.shop?` <small>${esc(e.shop)}</small>`:''}<br><small>${esc(e.cat)}・${esc(e.sub)} · ${e.time}</small></span><span style="text-align:right">${money(e)}</span></div>`).join('')}<div class="sum"><span>小計（台幣）</span><span>${nt(sumTWD(exps))}</span></div></div>`:''}
+  </section>`;
+}
+let curDay=0;
+function renderDay(d,keepScroll){
+  curDay=d;const y=window.scrollY;
+  $('#nHome').classList.remove('on');
+  const D=T.days[d-1],sp=D.spots;
+  $('#app').innerHTML=`${navHTML(d)}
+  <h2 class="dt" style="color:${COLORS[d-1]}">Day ${d} · ${D.date}</h2>
+  <div class="sub" data-title="d${d}">${esc(titleOf('d'+d,D.title))}</div>
+  <div class="stats"><div class="stat only-exp"><b>${nt(sumTWD(dayExp(d)))}</b><span>本日花費（台幣）</span></div></div>
+  <div id="dmap" class="cmap"></div>
+  <div id="spots">${sp.map((s,i)=>spotHTML(d,s,i)).join('')}</div>
+  ${navHTML(d)}`;
+  cuteMap($('#dmap'),d);
+  $$('textarea.memo').forEach(t=>t.oninput=()=>{sp.find(x=>x.id===t.dataset.id).memo=t.value});
+  applyPeople();
+  if(keepScroll)window.scrollTo(0,y);
+}
+document.addEventListener('click',async e=>{
+  const g=e.target.closest('.grid');
+  const btn=e.target.closest('[data-act]');
+  if(btn){
+    e.preventDefault();
+    const s=spotsOf(curDay).find(x=>x.id===btn.dataset.s),i=+btn.dataset.i,a=btn.dataset.act;
+    if(a==='up')moveItem(s,i,-1);else if(a==='down')moveItem(s,i,1);
+    else if(a==='del'){if(!confirm('刪除這張照片？（按儲存後才會真的從網站移除）'))return;removeItem(s,i)}
+    else if(a==='lock'){btn.disabled=true;try{await toggleLock(s,i)}catch(err){alert('切換失敗：'+err.message);return}}
+    renderDay(curDay,true);return;
+  }
+  if(g&&g.closest('#spots')){
+    const im=e.target.closest('img');if(!im)return;
+    const imgs=$$('.ph',g).filter(x=>!x.hidden).map(x=>$('img',x));
+    openLB(imgs.map(x=>x.dataset.full||x.src),imgs.indexOf(im));
+  }
+});
+document.addEventListener('change',async e=>{
+  const inp=e.target.closest('input.addph');if(!inp)return;
+  const s=spotsOf(curDay).find(x=>x.id===inp.dataset.s);
+  const lock=$('.newlock',inp.closest('.addrow')).checked;
+  document.body.style.cursor='wait';
+  try{await addPhotos(s,[...inp.files],lock)}catch(err){alert('新增失敗：'+err.message)}
+  document.body.style.cursor='';
+  renderDay(curDay,true);
+});
+
+function route(){
+  const m=location.hash.match(/#\/day\/(\d)/);
+  m?renderDay(+m[1]):renderHome();
+  applyTitles();window.scrollTo(0,0);
+}
+bindExpToggle();bindPeopleToggle();bindLB();
+bindEdit(()=>{const m=location.hash.match(/#\/day\/(\d)/);m?renderDay(+m[1],true):renderHome();applyTitles()});
+loadNotes().then(route);
+window.addEventListener('hashchange',route);
+</script>
+</body>
+</html>

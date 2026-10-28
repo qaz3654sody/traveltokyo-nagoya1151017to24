@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>花費分析 · 115 東京名古屋</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1>💰 花費分析</h1>
+  <div class="sub">資料來源：MOZE 記帳 · 日圓依匯率換算成台幣統計</div>
+</header>
+<div class="bar"><div>
+  <nav><a href="index.html">總覽</a><a href="expenses.html" class="on">💰 花費分析</a></nav>
+  <label class="sw" style="gap:6px">匯率 <input id="rate" class="rin" type="number" step="0.001" min="0.05" max="1" style="width:80px;padding:4px 6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"></label>
+</div></div>
+<main id="app">
+  <div class="stats" id="stats"></div>
+  <div class="panel"><div class="filters">
+    <div><label>天數</label><select id="fDay"><option value="">全部</option></select></div>
+    <div><label>主類別</label><select id="fCat"><option value="">全部</option></select></div>
+    <div><label>子類別</label><select id="fSub"><option value="">全部</option></select></div>
+    <div><label>幣別</label><select id="fCur"><option value="">全部</option><option>JPY</option><option>TWD</option></select></div>
+    <div><label>關鍵字（名稱／商家／明細）</label><input id="fQ" placeholder="例如：唐吉訶德"></div>
+    <div><label>台幣金額 ≥</label><input id="fMin" type="number" min="0" placeholder="0"></div>
+  </div><div style="margin-top:8px"><button class="btn" id="reset">清除篩選</button> <span class="sub" id="cnt"></span></div></div>
+  <div class="twocol">
+    <div class="panel"><b>依主類別</b><div class="bars" id="bCat"></div></div>
+    <div class="panel"><b>依天數</b><div class="bars alt" id="bDay"></div></div>
+  </div>
+  <div class="twocol">
+    <div class="panel"><b>依子類別（前 12）</b><div class="bars" id="bSub"></div></div>
+    <div class="panel"><b>依商家（前 12）</b><div class="bars alt" id="bShop"></div></div>
+  </div>
+  <div class="panel"><b>明細</b> <span class="sub">（點欄位標題排序、點一列看原始備註）</span>
+    <div class="tw"><table><thead><tr><th data-k="date">日期</th><th data-k="cat">類別</th><th data-k="name">項目</th><th data-k="cur" class="hm">原幣</th><th data-k="twd" class="n">台幣</th></tr></thead><tbody id="tb"></tbody></table></div>
+  </div>
+</main>
+<script src="data.js"></script>
+<script src="expenses.js"></script>
+<script src="app.js"></script>
+<script>
+const E=window.EXPENSES;
+const fill=(sel,vals)=>vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;$(sel).appendChild(o)});
+for(let d=1;d<=8;d++){const o=document.createElement('option');o.value=d;o.textContent=`Day ${d} · ${T.days[d-1].date}`;$('#fDay').appendChild(o)}
+fill('#fCat',[...new Set(E.map(e=>e.cat))]);
+fill('#fSub',[...new Set(E.map(e=>e.sub))]);
+$('#rate').value=RATE;
+let sortK='date',sortDir=1;
+const label=e=>e.name||e.shop||e.sub;
+
+function filtered(){
+  const d=$('#fDay').value,c=$('#fCat').value,s=$('#fSub').value,u=$('#fCur').value,q=$('#fQ').value.trim().toLowerCase(),m=+$('#fMin').value||0;
+  return E.filter(e=>(!d||e.day==d)&&(!c||e.cat===c)&&(!s||e.sub===s)&&(!u||e.cur===u)&&twd(e)>=m&&
+    (!q||(e.name+e.shop+e.desc+e.sub+e.cat).toLowerCase().includes(q)));
+}
+function group(list,key){const m={};list.forEach(e=>{const k=key(e);m[k]=(m[k]||0)+twd(e)});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
+function bars(id,rows,limit){
+  rows=rows.slice(0,limit||99);const max=Math.max(1,...rows.map(r=>r[1])),tot=rows.reduce((a,r)=>a+r[1],0);
+  $(id).innerHTML=rows.map(([k,v])=>`<div class="r"><span class="l" title="${esc(k)}">${esc(k)}</span><span><div class="b" style="width:${v/max*100}%"></div></span><span class="v">${nt(v)}</span></div>`).join('')||'<span class="sub">沒有資料</span>';
+}
+function render(){
+  const L=filtered(),tot=sumTWD(L),jp=L.filter(e=>e.cur==='JPY'),tw=L.filter(e=>e.cur==='TWD');
+  const days=new Set(L.map(e=>e.day)).size||1;
+  $('#stats').innerHTML=[
+    [nt(tot),'台幣合計（含日圓換算）'],
+    ['¥'+jp.reduce((a,e)=>a+e.amt,0).toLocaleString(),`日圓花費（${jp.length} 筆）`],
+    [nt(tw.reduce((a,e)=>a+e.amt,0)),`台幣花費（${tw.length} 筆）`],
+    [nt(tot/days),'平均每天'],
+    [nt(L.length?Math.max(...L.map(twd)):0),'單筆最高']
+  ].map(([b,s])=>`<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
+  $('#cnt').textContent=`共 ${L.length} 筆`;
+  bars('#bCat',group(L,e=>e.cat));
+  bars('#bDay',group(L,e=>'Day '+e.day).sort((a,b)=>a[0].localeCompare(b[0],'en',{numeric:true})));
+  bars('#bSub',group(L,e=>e.sub),12);
+  bars('#bShop',group(L,e=>e.shop||'（未填商家）'),12);
+  const rows=[...L].sort((a,b)=>{
+    const g=e=>sortK==='twd'?twd(e):sortK==='date'?e.date+e.time:(e[sortK]||'');
+    const x=g(a),y=g(b);return (x>y?1:x<y?-1:0)*sortDir});
+  $('#tb').innerHTML=rows.map(e=>`<tr class="row"><td>${e.date.slice(5)}<br><small class="sub">${e.time}</small></td><td>${esc(e.cat)}<br><small class="sub">${esc(e.sub)}</small></td><td>${esc(label(e))}${e.name&&e.shop?`<br><small class="sub">${esc(e.shop)}</small>`:''}<div class="desc">${esc(e.desc)}</div></td><td class="n hm">${e.cur==='JPY'?'¥':'NT$'}${e.amt.toLocaleString()}</td><td class="n">${nt(twd(e))}${e.cur==='JPY'?`<br><small class="sub">¥${e.amt.toLocaleString()}</small>`:''}</td></tr>`).join('');
+  $$('#tb tr').forEach(r=>r.onclick=()=>r.classList.toggle('open'));
+}
+['fDay','fCat','fSub','fCur'].forEach(i=>$('#'+i).onchange=render);
+['fQ','fMin'].forEach(i=>$('#'+i).oninput=render);
+$('#reset').onclick=()=>{['fDay','fCat','fSub','fCur','fQ','fMin'].forEach(i=>$('#'+i).value='');render()};
+$('#rate').oninput=()=>{const v=parseFloat($('#rate').value);if(v>0){RATE=v;lstore.set('rate',v);render()}};
+$$('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;sortDir=sortK===k?-sortDir:1;sortK=k;render()});
+render();
+</script>
+</body>
+</html>

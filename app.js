@@ -1,0 +1,225 @@
+/* 共用邏輯：開關、密碼解鎖、匯率、備註／標題／封面／照片編輯 */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const T=window.TRIP;
+const COLORS=['#d9534f','#e8883a','#c9a227','#4c9a5a','#2f7d8c','#3d6fb5','#7a57b5','#b5578f'];
+const store={get(k,d){try{const v=sessionStorage.getItem(k);return v===null?d:v}catch(_){return d}},set(k,v){try{sessionStorage.setItem(k,v)}catch(_){}}};
+const lstore={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(_){return d}},set(k,v){try{localStorage.setItem(k,v)}catch(_){}}};
+let RATE=parseFloat(lstore.get('rate',T.rate))||T.rate;
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const twd=e=>e.cur==='JPY'?e.amt*RATE:e.amt;
+const nt=n=>'NT$'+Math.round(n).toLocaleString();
+const money=e=>e.cur==='JPY'?`¥${e.amt.toLocaleString()} <small>≈ ${nt(e.amt*RATE)}</small>`:nt(e.amt);
+const sumTWD=list=>list.reduce((a,e)=>a+twd(e),0);
+const EXPBY=()=>Object.fromEntries((window.EXPENSES||[]).map(e=>[e.id,e]));
+
+/* ---------- 開關 ---------- */
+function bindExpToggle(onchange){
+  const t=$('#tExp');if(!t)return;
+  t.checked=store.get('showexp','0')==='1';document.body.classList.toggle('showexp',t.checked);
+  t.onchange=()=>{store.set('showexp',t.checked?'1':'0');document.body.classList.toggle('showexp',t.checked);onchange&&onchange()};
+}
+
+/* ---------- 主角照片：AES-GCM 加密，輸入密碼後才在瀏覽器解開 ---------- */
+let cryptoKey=null; const blobs={}; const LOCAL={};
+async function deriveKey(pw){
+  const base=await crypto.subtle.importKey('raw',new TextEncoder().encode(pw),'PBKDF2',false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(T.salt),iterations:150000,hash:'SHA-256'},base,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+async function decBytes(raw,k){return crypto.subtle.decrypt({name:'AES-GCM',iv:raw.slice(0,12)},k||cryptoKey,raw.slice(12))}
+async function decFile(id){
+  if(blobs[id])return blobs[id];
+  const raw=new Uint8Array(await (await fetch(`photos/${id}.bin`)).arrayBuffer());
+  return blobs[id]=URL.createObjectURL(new Blob([await decBytes(raw)],{type:'image/jpeg'}));
+}
+async function tryUnlock(pw){
+  const k=await deriveKey(pw);
+  const first='_check'; // 建置時產生的固定驗證檔，不會被編輯功能刪除
+  const raw=new Uint8Array(await (await fetch(`photos/${first}.bin`)).arrayBuffer());
+  await decBytes(raw,k); // 密碼錯誤會丟錯
+  cryptoKey=k;store.set('pw',pw);
+}
+function askPassword(){
+  return new Promise(res=>{
+    const m=$('#pw');m.style.display='flex';$('#pwi').value='';$('#pwe').textContent='';setTimeout(()=>$('#pwi').focus(),50);
+    $('#pwc').onclick=()=>{m.style.display='none';res(false)};
+    $('#pwf').onsubmit=async e=>{e.preventDefault();
+      try{await tryUnlock($('#pwi').value);m.style.display='none';res(true)}
+      catch(_){$('#pwe').textContent='密碼錯誤，請再試一次';$('#pwi').value=''}};
+  });
+}
+async function ensureUnlocked(){
+  if(cryptoKey)return true;
+  const saved=store.get('pw','');
+  if(saved){try{await tryUnlock(saved);return true}catch(_){}}
+  return askPassword();
+}
+async function applyPeople(){
+  const on=$('#tPp')&&$('#tPp').checked;
+  for(const i of $$('img.pp')){
+    const w=i.closest('.ph')||i;
+    if(!on){w.hidden=true;continue}
+    if(!i.src||!i.src.startsWith('blob:'))i.src=await decFile(i.dataset.id);
+    w.hidden=false;
+  }
+}
+function bindPeopleToggle(){
+  const t=$('#tPp');if(!t)return;
+  t.onchange=async()=>{
+    if(t.checked){if(!await ensureUnlocked()){t.checked=false;return}store.set('showpp','1')}else store.set('showpp','0');
+    applyPeople();
+  };
+  if(store.get('showpp','0')==='1'){ensureUnlocked().then(ok=>{t.checked=ok;if(ok)applyPeople()})}
+}
+
+/* ---------- 燈箱 ---------- */
+let lbList=[],lbI=0;
+function openLB(list,i){lbList=list;lbI=i;$('#lb img').src=lbList[lbI];$('#lb').style.display='flex'}
+function lbMove(d){lbI=(lbI+d+lbList.length)%lbList.length;$('#lb img').src=lbList[lbI]}
+function bindLB(){
+  const lb=$('#lb');if(!lb)return;
+  lb.onclick=e=>{if(e.target.matches('button'))return;lb.style.display='none'};
+  $('#lb .prev').onclick=()=>lbMove(-1);$('#lb .next').onclick=()=>lbMove(1);
+  document.addEventListener('keydown',e=>{if(lb.style.display!=='flex')return;
+    if(e.key==='Escape')lb.style.display='none';if(e.key==='ArrowLeft')lbMove(-1);if(e.key==='ArrowRight')lbMove(1)});
+}
+
+/* ---------- 備註／標題／封面／照片清單（notes.json）---------- */
+let NOTES={},BASE_ITEMS={};
+async function loadNotes(){
+  T.days.forEach(d=>d.spots.forEach(s=>{BASE_ITEMS[s.id]=JSON.stringify(s.items)}));
+  try{const r=await fetch('notes.json?'+Date.now());if(r.ok)NOTES=await r.json()}catch(_){}
+  T.covers=NOTES._covers||{};T.titles=NOTES._titles||{};
+  const ph=NOTES._photos||{};
+  T.days.forEach(d=>d.spots.forEach(s=>{if(s.id in NOTES)s.memo=NOTES[s.id];if(ph[s.id])s.items=ph[s.id]}));
+}
+function titleOf(k,def){return (T.titles&&T.titles[k])||def}
+function applyTitles(){
+  const edit=document.body.classList.contains('edit');
+  const h=$('#h1'),sb=$('#hsub');if(!h)return;
+  h.textContent=titleOf('site','115 東京 – 名古屋 ❤️');sb.textContent=titleOf('sub','2026/10/17 ~ 10/24 · 8 天旅遊紀錄');
+  document.title=h.textContent.replace(/[❤️]/g,'').trim()||document.title;
+  [[h,'site'],[sb,'sub']].forEach(([el,k])=>{
+    el.contentEditable=edit?'true':'false';el.classList.toggle('editable',edit);
+    el.oninput=()=>{T.titles=T.titles||{};T.titles[k]=el.textContent};
+  });
+  $$('[data-title]').forEach(el=>{
+    el.contentEditable=edit?'true':'false';el.classList.toggle('editable',edit);
+    el.oninput=()=>{T.titles=T.titles||{};T.titles[el.dataset.title]=el.textContent};
+  });
+}
+
+/* ---------- 照片編輯：排序／鎖定／刪除／新增，檔案變更先排隊，儲存時一起上傳 ---------- */
+const OPS={};
+const opCount=()=>Object.keys(OPS).length;
+function setOp(path,op){
+  if(op.t==='del'&&OPS[path]&&OPS[path].t==='put'){delete OPS[path];return}
+  OPS[path]=op;
+}
+const urlOf=b=>URL.createObjectURL(b);
+const srcThumb=it=>(LOCAL[it.id]&&LOCAL[it.id].thumb)||`photos/${it.id}_t.jpg`;
+const srcFull=it=>(LOCAL[it.id]&&LOCAL[it.id].full)||`photos/${it.id}.jpg`;
+async function resizeBlob(blobOrFile,max,q){
+  const bm=await createImageBitmap(blobOrFile,{imageOrientation:'from-image'});
+  const sc=Math.min(1,max/Math.max(bm.width,bm.height));
+  const c=document.createElement('canvas');c.width=Math.round(bm.width*sc);c.height=Math.round(bm.height*sc);
+  c.getContext('2d').drawImage(bm,0,0,c.width,c.height);
+  return new Promise(r=>c.toBlob(r,'image/jpeg',q));
+}
+async function encryptBlob(blob){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},cryptoKey,await blob.arrayBuffer()));
+  const out=new Uint8Array(12+ct.length);out.set(iv);out.set(ct,12);return new Blob([out]);
+}
+async function plainBlobOf(it){
+  const q=OPS[`photos/${it.id}.jpg`];if(q&&q.t==='put')return q.blob;
+  if(it.locked){const u=await decFile(it.id);return (await fetch(u)).blob()}
+  return (await fetch(`photos/${it.id}.jpg`)).blob();
+}
+async function toggleLock(s,i){
+  const it=s.items[i];const blob=await plainBlobOf(it);
+  if(!it.locked){
+    setOp(`photos/${it.id}.bin`,{t:'put',blob:await encryptBlob(blob)});
+    setOp(`photos/${it.id}.jpg`,{t:'del'});setOp(`photos/${it.id}_t.jpg`,{t:'del'});
+    blobs[it.id]=urlOf(blob);it.locked=true;
+  }else{
+    setOp(`photos/${it.id}.jpg`,{t:'put',blob});
+    const th=await resizeBlob(blob,480,.72);setOp(`photos/${it.id}_t.jpg`,{t:'put',blob:th});
+    setOp(`photos/${it.id}.bin`,{t:'del'});
+    LOCAL[it.id]={thumb:urlOf(th),full:urlOf(blob)};it.locked=false;
+  }
+}
+function removeItem(s,i){
+  const it=s.items[i];
+  if(it.locked)setOp(`photos/${it.id}.bin`,{t:'del'});else{setOp(`photos/${it.id}.jpg`,{t:'del'});setOp(`photos/${it.id}_t.jpg`,{t:'del'})}
+  s.items.splice(i,1);
+}
+function moveItem(s,i,d){const j=i+d;if(j<0||j>=s.items.length)return;[s.items[i],s.items[j]]=[s.items[j],s.items[i]]}
+async function addPhotos(s,files,lock){
+  let n=0;
+  for(const f of files){
+    if(!f.type.startsWith('image/'))continue;
+    const id='u'+Date.now().toString(36)+(n++);
+    const full=await resizeBlob(f,1280,.78);
+    if(lock){setOp(`photos/${id}.bin`,{t:'put',blob:await encryptBlob(full)});blobs[id]=urlOf(full)}
+    else{const th=await resizeBlob(f,480,.72);setOp(`photos/${id}.jpg`,{t:'put',blob:full});setOp(`photos/${id}_t.jpg`,{t:'put',blob:th});LOCAL[id]={thumb:urlOf(th),full:urlOf(full)}}
+    s.items.push({id,locked:!!lock});
+  }
+}
+
+/* ---------- 儲存（GitHub API）---------- */
+function ghToken(){
+  let tok=lstore.get('ghtoken','');
+  if(!tok){tok=prompt('要儲存到網站，請貼上 GitHub Personal Access Token（只會存在這個瀏覽器）。\n建立方式：GitHub → Settings → Developer settings → Fine-grained tokens，只授權這個 repo，Contents 選 Read and write。')||'';if(tok)lstore.set('ghtoken',tok.trim())}
+  return lstore.get('ghtoken','');
+}
+const toB64=blob=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result.split(',')[1]);fr.readAsDataURL(blob)});
+async function saveNotes(){
+  const bar=$('#savemsg');const say=t=>{if(bar)bar.textContent=t};
+  const out={_covers:T.covers||{},_titles:T.titles||{},_photos:{}};
+  T.days.forEach(d=>d.spots.forEach(s=>{out[s.id]=s.memo;if(JSON.stringify(s.items)!==BASE_ITEMS[s.id])out._photos[s.id]=s.items}));
+  const json=JSON.stringify(out,null,1);
+  const tok=T.repo?ghToken():'';
+  if(!tok){
+    if(opCount())alert('照片的新增／刪除／鎖定變更需要 GitHub 權杖才能存到網站，這次沒有儲存照片。');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([json],{type:'application/json'}));a.download='notes.json';a.click();return;
+  }
+  const H={Authorization:'Bearer '+tok,Accept:'application/vnd.github+json'};
+  const api=p=>`https://api.github.com/repos/${T.repo}/contents/${p}`;
+  const shaOf=async p=>{const r=await fetch(api(p)+'?t='+Date.now(),{headers:H});return r.ok?(await r.json()).sha:undefined};
+  try{
+    const paths=Object.keys(OPS);let n=0;
+    for(const p of paths){
+      say(`上傳中 ${++n}/${paths.length+1}…`);const op=OPS[p];const sha=await shaOf(p);
+      if(op.t==='put'){
+        const r=await fetch(api(p),{method:'PUT',headers:H,body:JSON.stringify({message:'photo '+p,content:await toB64(op.blob),sha})});
+        if(!r.ok)throw new Error(p+' '+r.status);
+      }else if(sha){
+        const r=await fetch(api(p),{method:'DELETE',headers:H,body:JSON.stringify({message:'remove '+p,sha})});
+        if(!r.ok)throw new Error(p+' '+r.status);
+      }
+      delete OPS[p];
+    }
+    say('儲存備註…');
+    const sha=await shaOf('notes.json');
+    const r=await fetch(api('notes.json'),{method:'PUT',headers:H,body:JSON.stringify({message:'update notes',content:btoa(unescape(encodeURIComponent(json))),sha})});
+    if(!r.ok)throw new Error('notes.json '+r.status);
+    T.days.forEach(d=>d.spots.forEach(s=>{BASE_ITEMS[s.id]=JSON.stringify(s.items)}));
+    say('已儲存');alert('已儲存！網站約 1 分鐘後更新。');
+  }catch(e){
+    say('儲存失敗');
+    if(/40[13]/.test(e.message)){lstore.set('ghtoken','');alert('權杖無效或權限不足（'+e.message+'）。請重新建立權杖後再試。')}
+    else alert('儲存失敗：'+e.message+'\n已完成的檔案不會重傳，可以再按一次儲存。');
+  }
+}
+function bindEdit(rerender){
+  const b=$('#btnEdit');if(!b)return;
+  b.onclick=async()=>{
+    if(document.body.classList.contains('edit')){document.body.classList.remove('edit');b.innerHTML='✏️<span class="lb"> 編輯</span>';rerender();return}
+    if(!await ensureUnlocked())return;
+    document.body.classList.add('edit');b.innerHTML='✅<span class="lb"> 結束編輯</span>';
+    const t=$('#tPp');if(t&&!t.checked){t.checked=true;store.set('showpp','1')}
+    rerender();
+  };
+  $('#btnSave').onclick=saveNotes;
+}
