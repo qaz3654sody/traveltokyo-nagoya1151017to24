@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>花費分析 · 115 東京名古屋</title>
-<link rel="stylesheet" href="style.css?v=202610281509">
+<link rel="stylesheet" href="style.css?v=202610281511">
 <style>
 .chipgrp{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
 .fl{font-size:12px;color:var(--mute);margin-top:6px}
@@ -47,7 +47,7 @@ td .sm{font-size:12px;color:var(--mute)}
   <div class="sub">資料來源：MOZE 記帳 · 日圓依匯率換算成台幣統計</div>
 </header>
 <div class="bar"><div>
-  <nav><a href="index.html"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>行程總覽</a><a href="expenses.html" class="on"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8l3 4 3-4M8.5 12.5h7M8.5 15.5h7M12 12v6"/></svg>花費分析</a></nav>
+  <nav><a href="index.html"><svg class="ic" viewBox="0 0 24 24"><path d="M2.5 6.5 9 4v14.5l-6.5 2.2z" fill="#6cc070"/><path d="M9 4l6 2.5v14.7L9 18.5z" fill="#f2c94c"/><path d="M15 6.5 21.5 4v14.7l-6.5 2.5z" fill="#56a6e8"/><path d="M9 4v14.5M15 6.5v14.7" stroke="#fff" stroke-width="1.2"/><circle cx="17.8" cy="9.5" r="2" fill="#e0533d" stroke="#fff" stroke-width="1"/></svg>行程總覽</a><a href="expenses.html" class="on"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f5b942" stroke="#d98e1f" stroke-width="1.5"/><circle cx="12" cy="12" r="7.3" fill="#ffd566" stroke="#fff3c4" stroke-width="1"/><path d="M8.7 7.6 12 12.2l3.3-4.6M8.8 12.3h6.4M8.8 15h6.4M12 12.2V17.2" fill="none" stroke="#a85f00" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>花費分析</a></nav>
   <label class="sw" style="gap:6px">匯率 <input id="rate" class="rin" type="number" step="0.001" min="0.05" max="1" style="width:80px;padding:4px 6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"></label>
 </div></div>
 <main id="app">
@@ -81,9 +81,9 @@ td .sm{font-size:12px;color:var(--mute)}
     <div class="tw"><table><thead><tr><th data-k="date">日期</th><th data-k="cat">類別</th><th data-k="place">店家／購買內容</th><th data-k="cur" class="hm">原幣</th><th data-k="twd" class="n">台幣</th></tr></thead><tbody id="tb"></tbody></table></div>
   </div>
 </main>
-<script src="data.js?v=202610281509"></script>
-<script src="expenses.js?v=202610281509"></script>
-<script src="app.js?v=202610281509"></script>
+<script src="data.js?v=202610281511"></script>
+<script src="expenses.js?v=202610281511"></script>
+<script src="app.js?v=202610281511"></script>
 <script>
 const E=window.EXPENSES;
 const CAT_COL={交通:'#3d6fb5',飲食:'#e8883a',生活:'#7a57b5',個人:'#b5578f',家居:'#4c9a5a',購物:'#d9534f',娛樂:'#c9a227',醫療:'#2f7d8c'};
@@ -97,7 +97,7 @@ const PAL=['#d9534f','#e8883a','#c9a227','#4c9a5a','#2f7d8c','#3d6fb5','#7a57b5'
 const sel={day:new Set(),cat:new Set(),sub:new Set(),cur:new Set()};
 const uniq=a=>[...new Set(a)];
 const CATS=uniq(E.map(e=>e.cat));
-const SUBOF=cat=>uniq(E.filter(e=>!cat.size||cat.has(e.cat)).map(e=>e.sub));
+const SUBOF=cat=>CATS.filter(c=>!cat.size||cat.has(c)).flatMap(c=>SUBS_BY_CAT[c]||[]);
 let sortK='date',sortDir=1;
 const label=e=>e.place||e.name||e.shop||e.sub;
 

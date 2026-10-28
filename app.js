@@ -227,7 +227,7 @@ function bindEdit(rerender){
 }
 
 /* ---------- 側邊欄（電腦版固定在左側，手機版從左滑出；群組與整個側邊欄都可以收合）---------- */
-const IC_MAP='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>',IC_COIN='<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 8l3 4 3-4M8.5 12.5h7M8.5 15.5h7M12 12v6"/></svg>';
+const IC_MAP='<svg class="ic" viewBox="0 0 24 24"><path d="M2.5 6.5 9 4v14.5l-6.5 2.2z" fill="#6cc070"/><path d="M9 4l6 2.5v14.7L9 18.5z" fill="#f2c94c"/><path d="M15 6.5 21.5 4v14.7l-6.5 2.5z" fill="#56a6e8"/><path d="M9 4v14.5M15 6.5v14.7" stroke="#fff" stroke-width="1.2"/><circle cx="17.8" cy="9.5" r="2" fill="#e0533d" stroke="#fff" stroke-width="1"/></svg>',IC_COIN='<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f5b942" stroke="#d98e1f" stroke-width="1.5"/><circle cx="12" cy="12" r="7.3" fill="#ffd566" stroke="#fff3c4" stroke-width="1"/><path d="M8.7 7.6 12 12.2l3.3-4.6M8.8 12.3h6.4M8.8 15h6.4M12 12.2V17.2" fill="none" stroke="#a85f00" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const EXP_SECTIONS=[['stats','📊 總覽數字'],['x-filter','🔎 篩選'],['x-pie','🥧 類別占比'],['x-line','📈 累計走勢'],['x-day','📅 依天數／時段'],['x-shop','🏪 幣別與商家'],['x-top','🏆 最大 10 筆'],['x-table','🧾 明細']];
 const gOpen=g=>lstore.get('sideg_'+g,'1')==='1';
 const isWide=()=>window.matchMedia('(min-width:1100px)').matches;
