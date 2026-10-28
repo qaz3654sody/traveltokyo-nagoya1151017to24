@@ -56,6 +56,7 @@ async function ensureUnlocked(){
 }
 async function applyPeople(){
   const on=$('#tPp')&&$('#tPp').checked;
+  $$('.lkicon').forEach(b=>b.firstChild.textContent=on?'🔓':'🔒');
   for(const i of $$('img.pp')){
     const w=i.closest('.ph')||i;
     if(!on){w.hidden=true;continue}

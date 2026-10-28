@@ -149,7 +149,7 @@ body.showexp .only-exp{display:block}
 /* 可愛地圖 */
 .cmap{margin:10px 0;border-radius:18px;overflow:hidden;border:1px solid var(--line);line-height:0}
 .cmap svg{display:block;max-width:100%;height:auto}
-.plabel{fill:var(--ink);paint-order:stroke;stroke:var(--mapbg);stroke-width:3px;stroke-linejoin:round}
+.plabel{fill:#2b2622;paint-order:stroke;stroke:rgba(255,255,255,.92);stroke-width:3.5px;stroke-linejoin:round}
 .pin:hover circle:first-child{fill:var(--chip)}
 /* 照片編輯 */
 .ph{position:relative}
@@ -160,3 +160,5 @@ body.showexp .only-exp{display:block}
 .addrow{display:flex;gap:12px;align-items:center;margin-top:8px;flex-wrap:wrap}
 .cpbox .grid img{cursor:pointer}
 @media(max-width:600px){.daynav{gap:6px}.nbtn{padding:6px 10px;font-size:13px}.fnode{font-size:13px;padding:5px 9px}.step{flex-basis:86px;min-width:86px}}
+
+.lkicon{border:0;background:var(--chip);color:var(--acc);border-radius:12px;padding:2px 9px;font-size:13px;cursor:pointer;font-weight:600}.lkicon small{font-size:11px}

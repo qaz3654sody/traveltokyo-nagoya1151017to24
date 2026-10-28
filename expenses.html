@@ -5,6 +5,24 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>花費分析 · 115 東京名古屋</title>
 <link rel="stylesheet" href="style.css">
+<style>
+.chipgrp{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
+.fl{font-size:12px;color:var(--mute);margin-top:6px}
+.chip.sm{padding:3px 10px;font-size:13px}
+.chip.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+.donutwrap{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.donutwrap svg{flex:none}
+.legend{flex:1;min-width:170px;font-size:13px}
+.legend div{display:flex;align-items:center;gap:6px;padding:2px 0}
+.legend i{width:10px;height:10px;border-radius:3px;flex:none}
+.legend span.v{margin-left:auto;white-space:nowrap}
+.legend span.p{color:var(--mute);width:42px;text-align:right}
+.top10 div{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid var(--line);font-size:13px}
+.top10 b{width:22px;color:var(--mute)}
+.top10 span.g{flex:1}
+.top10 small{color:var(--mute)}
+svg text{font-family:inherit}
+</style>
 </head>
 <body>
 <header class="top">
@@ -12,27 +30,36 @@
   <div class="sub">資料來源：MOZE 記帳 · 日圓依匯率換算成台幣統計</div>
 </header>
 <div class="bar"><div>
-  <nav><a href="index.html">總覽</a><a href="expenses.html" class="on">💰 花費分析</a></nav>
+  <nav><a href="index.html">行程總覽</a><a href="expenses.html" class="on">💰 花費分析</a></nav>
   <label class="sw" style="gap:6px">匯率 <input id="rate" class="rin" type="number" step="0.001" min="0.05" max="1" style="width:80px;padding:4px 6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"></label>
 </div></div>
 <main id="app">
   <div class="stats" id="stats"></div>
-  <div class="panel"><div class="filters">
-    <div><label>天數</label><select id="fDay"><option value="">全部</option></select></div>
-    <div><label>主類別</label><select id="fCat"><option value="">全部</option></select></div>
-    <div><label>子類別</label><select id="fSub"><option value="">全部</option></select></div>
-    <div><label>幣別</label><select id="fCur"><option value="">全部</option><option>JPY</option><option>TWD</option></select></div>
-    <div><label>關鍵字（名稱／商家／明細）</label><input id="fQ" placeholder="例如：唐吉訶德"></div>
-    <div><label>台幣金額 ≥</label><input id="fMin" type="number" min="0" placeholder="0"></div>
-  </div><div style="margin-top:8px"><button class="btn" id="reset">清除篩選</button> <span class="sub" id="cnt"></span></div></div>
+  <div class="panel">
+    <div class="fl">天數（可複選，不選＝全部）</div><div class="chipgrp" id="gDay"></div>
+    <div class="fl">主類別</div><div class="chipgrp" id="gCat"></div>
+    <div class="fl">子類別（會依選的主類別縮小範圍）</div><div class="chipgrp" id="gSub"></div>
+    <div class="fl">幣別</div><div class="chipgrp" id="gCur"></div>
+    <div class="filters" style="margin-top:6px">
+      <div><label>關鍵字（名稱／商家／明細）</label><input id="fQ" placeholder="例如：唐吉訶德"></div>
+      <div><label>台幣金額 ≥</label><input id="fMin" type="number" min="0" placeholder="0"></div>
+    </div>
+    <div style="margin-top:8px"><button class="btn" id="reset">清除篩選</button> <span class="sub" id="cnt"></span></div>
+  </div>
   <div class="twocol">
-    <div class="panel"><b>依主類別</b><div class="bars" id="bCat"></div></div>
+    <div class="panel"><b>主類別占比</b><div class="donutwrap" id="dCat"></div></div>
+    <div class="panel"><b>子類別占比（前 8）</b><div class="donutwrap" id="dSub"></div></div>
+  </div>
+  <div class="panel"><b>累計花費走勢（台幣）</b><div id="lineWrap"></div></div>
+  <div class="twocol">
     <div class="panel"><b>依天數</b><div class="bars alt" id="bDay"></div></div>
+    <div class="panel"><b>依時段</b><div class="bars" id="bHour"></div></div>
   </div>
   <div class="twocol">
-    <div class="panel"><b>依子類別（前 12）</b><div class="bars" id="bSub"></div></div>
-    <div class="panel"><b>依商家（前 12）</b><div class="bars alt" id="bShop"></div></div>
+    <div class="panel"><b>日圓／台幣占比</b><div class="donutwrap" id="dCur"></div></div>
+    <div class="panel"><b>依商家（前 10）</b><div class="bars alt" id="bShop"></div></div>
   </div>
+  <div class="panel"><b>最大額的 10 筆</b><div class="top10" id="top10"></div></div>
   <div class="panel"><b>明細</b> <span class="sub">（點欄位標題排序、點一列看原始備註）</span>
     <div class="tw"><table><thead><tr><th data-k="date">日期</th><th data-k="cat">類別</th><th data-k="name">項目</th><th data-k="cur" class="hm">原幣</th><th data-k="twd" class="n">台幣</th></tr></thead><tbody id="tb"></tbody></table></div>
   </div>
@@ -42,24 +69,62 @@
 <script src="app.js"></script>
 <script>
 const E=window.EXPENSES;
-const fill=(sel,vals)=>vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;$(sel).appendChild(o)});
-for(let d=1;d<=8;d++){const o=document.createElement('option');o.value=d;o.textContent=`Day ${d} · ${T.days[d-1].date}`;$('#fDay').appendChild(o)}
-fill('#fCat',[...new Set(E.map(e=>e.cat))]);
-fill('#fSub',[...new Set(E.map(e=>e.sub))]);
-$('#rate').value=RATE;
+const PAL=['#d9534f','#e8883a','#c9a227','#4c9a5a','#2f7d8c','#3d6fb5','#7a57b5','#b5578f','#8a7f76','#5fa8a0'];
+const sel={day:new Set(),cat:new Set(),sub:new Set(),cur:new Set()};
+const uniq=a=>[...new Set(a)];
+const CATS=uniq(E.map(e=>e.cat));
+const SUBOF=cat=>uniq(E.filter(e=>!cat.size||cat.has(e.cat)).map(e=>e.sub));
 let sortK='date',sortDir=1;
 const label=e=>e.name||e.shop||e.sub;
 
+function chips(id,items,set,render){
+  $(id).innerHTML=items.map(([v,t])=>`<span class="chip sm ${set.has(String(v))?'on':''}" data-v="${esc(v)}">${esc(t)}</span>`).join('');
+  $$(id+' .chip').forEach(c=>c.onclick=()=>{const v=c.dataset.v;set.has(v)?set.delete(v):set.add(v);render()});
+}
+function drawFilters(){
+  // 子類別依主類別縮小；已選但不在範圍內的自動取消
+  const subs=SUBOF(sel.cat);[...sel.sub].forEach(s=>{if(!subs.includes(s))sel.sub.delete(s)});
+  chips('#gDay',[...Array(8)].map((_,i)=>[i+1,`D${i+1} ${T.days[i].date.split(' ')[0]}`]),sel.day,update);
+  chips('#gCat',CATS.map(c=>[c,c]),sel.cat,update);
+  chips('#gSub',subs.map(c=>[c,c]),sel.sub,update);
+  chips('#gCur',[['JPY','日圓 JPY'],['TWD','台幣 TWD']],sel.cur,update);
+}
 function filtered(){
-  const d=$('#fDay').value,c=$('#fCat').value,s=$('#fSub').value,u=$('#fCur').value,q=$('#fQ').value.trim().toLowerCase(),m=+$('#fMin').value||0;
-  return E.filter(e=>(!d||e.day==d)&&(!c||e.cat===c)&&(!s||e.sub===s)&&(!u||e.cur===u)&&twd(e)>=m&&
+  const q=$('#fQ').value.trim().toLowerCase(),m=+$('#fMin').value||0;
+  return E.filter(e=>(!sel.day.size||sel.day.has(String(e.day)))&&(!sel.cat.size||sel.cat.has(e.cat))&&(!sel.sub.size||sel.sub.has(e.sub))&&(!sel.cur.size||sel.cur.has(e.cur))&&twd(e)>=m&&
     (!q||(e.name+e.shop+e.desc+e.sub+e.cat).toLowerCase().includes(q)));
 }
 function group(list,key){const m={};list.forEach(e=>{const k=key(e);m[k]=(m[k]||0)+twd(e)});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
 function bars(id,rows,limit){
-  rows=rows.slice(0,limit||99);const max=Math.max(1,...rows.map(r=>r[1])),tot=rows.reduce((a,r)=>a+r[1],0);
+  rows=rows.slice(0,limit||99);const max=Math.max(1,...rows.map(r=>r[1]));
   $(id).innerHTML=rows.map(([k,v])=>`<div class="r"><span class="l" title="${esc(k)}">${esc(k)}</span><span><div class="b" style="width:${v/max*100}%"></div></span><span class="v">${nt(v)}</span></div>`).join('')||'<span class="sub">沒有資料</span>';
 }
+function donut(id,rows,top){
+  let r=rows.filter(x=>x[1]>0);
+  if(top&&r.length>top){const rest=r.slice(top).reduce((a,x)=>a+x[1],0);r=r.slice(0,top).concat([['其他',rest]])}
+  const tot=r.reduce((a,x)=>a+x[1],0);
+  if(!tot){$(id).innerHTML='<span class="sub">沒有資料</span>';return}
+  const R=58,C=2*Math.PI*R;let off=0;
+  const arcs=r.map(([k,v],i)=>{const f=v/tot,dash=f*C;const el=`<circle r="${R}" cx="80" cy="80" fill="none" stroke="${PAL[i%PAL.length]}" stroke-width="30" stroke-dasharray="${dash} ${C-dash}" stroke-dashoffset="${-off}" transform="rotate(-90 80 80)"><title>${esc(k)} ${nt(v)}（${(f*100).toFixed(1)}%）</title></circle>`;off+=dash;return el}).join('');
+  $(id).innerHTML=`<svg width="160" height="160" viewBox="0 0 160 160">${arcs}<text x="80" y="76" text-anchor="middle" font-size="11" fill="var(--mute)">合計</text><text x="80" y="94" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${nt(tot)}</text></svg>
+  <div class="legend">${r.map(([k,v],i)=>`<div><i style="background:${PAL[i%PAL.length]}"></i><span>${esc(k)}</span><span class="v">${nt(v)}</span><span class="p">${(v/tot*100).toFixed(1)}%</span></div>`).join('')}</div>`;
+}
+function lineChart(L){
+  const per=[...Array(8)].map((_,i)=>sumTWD(L.filter(e=>e.day===i+1)));
+  let acc=0;const cum=per.map(v=>acc+=v);const max=Math.max(1,...cum);
+  const W=560,H=200,p=34,xs=i=>p+i*(W-2*p)/7,ys=v=>H-p-(v/max)*(H-2*p);
+  const pts=cum.map((v,i)=>[xs(i),ys(v)]);
+  const line=pts.map((q,i)=>(i?'L':'M')+q[0]+','+q[1]).join(' ');
+  $('#lineWrap').innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto">
+   ${[0,.5,1].map(f=>`<line x1="${p}" x2="${W-p}" y1="${ys(max*f)}" y2="${ys(max*f)}" stroke="var(--line)"/><text x="${p-4}" y="${ys(max*f)+4}" text-anchor="end" font-size="10" fill="var(--mute)">${Math.round(max*f/1000)}k</text>`).join('')}
+   <path d="${line} L${xs(7)},${H-p} L${xs(0)},${H-p} Z" fill="var(--acc)" opacity=".12"/>
+   <path d="${line}" fill="none" stroke="var(--acc)" stroke-width="3" stroke-linejoin="round"/>
+   ${pts.map((q,i)=>`<circle cx="${q[0]}" cy="${q[1]}" r="4.5" fill="var(--acc)"><title>Day ${i+1}：當日 ${nt(per[i])}，累計 ${nt(cum[i])}</title></circle><text x="${q[0]}" y="${H-p+16}" text-anchor="middle" font-size="11" fill="var(--mute)">D${i+1}</text><text x="${q[0]}" y="${q[1]-9}" text-anchor="middle" font-size="10" fill="var(--ink)">${Math.round(cum[i]/1000)}k</text>`).join('')}
+  </svg>`;
+}
+function hourBucket(t){const h=+t.slice(0,2);return h<6?'凌晨 0–6':h<11?'早上 6–11':h<14?'中午 11–14':h<18?'下午 14–18':'晚上 18–24'}
+
+function update(){drawFilters();render()}
 function render(){
   const L=filtered(),tot=sumTWD(L),jp=L.filter(e=>e.cur==='JPY'),tw=L.filter(e=>e.cur==='TWD');
   const days=new Set(L.map(e=>e.day)).size||1;
@@ -71,22 +136,27 @@ function render(){
     [nt(L.length?Math.max(...L.map(twd)):0),'單筆最高']
   ].map(([b,s])=>`<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
   $('#cnt').textContent=`共 ${L.length} 筆`;
-  bars('#bCat',group(L,e=>e.cat));
+  donut('#dCat',group(L,e=>e.cat));
+  donut('#dSub',group(L,e=>e.sub),8);
+  donut('#dCur',group(L,e=>e.cur==='JPY'?'日圓花費（換算）':'台幣花費'));
+  lineChart(L);
   bars('#bDay',group(L,e=>'Day '+e.day).sort((a,b)=>a[0].localeCompare(b[0],'en',{numeric:true})));
-  bars('#bSub',group(L,e=>e.sub),12);
-  bars('#bShop',group(L,e=>e.shop||'（未填商家）'),12);
+  const order=['凌晨 0–6','早上 6–11','中午 11–14','下午 14–18','晚上 18–24'];
+  bars('#bHour',group(L,e=>hourBucket(e.time)).sort((a,b)=>order.indexOf(a[0])-order.indexOf(b[0])));
+  bars('#bShop',group(L,e=>e.shop||'（未填商家）'),10);
+  $('#top10').innerHTML=[...L].sort((a,b)=>twd(b)-twd(a)).slice(0,10).map((e,i)=>`<div><b>${i+1}</b><span class="g">${esc(label(e))}<br><small>Day ${e.day} · ${esc(e.cat)}・${esc(e.sub)}</small></span><span>${nt(twd(e))}</span></div>`).join('')||'<span class="sub">沒有資料</span>';
   const rows=[...L].sort((a,b)=>{
     const g=e=>sortK==='twd'?twd(e):sortK==='date'?e.date+e.time:(e[sortK]||'');
     const x=g(a),y=g(b);return (x>y?1:x<y?-1:0)*sortDir});
   $('#tb').innerHTML=rows.map(e=>`<tr class="row"><td>${e.date.slice(5)}<br><small class="sub">${e.time}</small></td><td>${esc(e.cat)}<br><small class="sub">${esc(e.sub)}</small></td><td>${esc(label(e))}${e.name&&e.shop?`<br><small class="sub">${esc(e.shop)}</small>`:''}<div class="desc">${esc(e.desc)}</div></td><td class="n hm">${e.cur==='JPY'?'¥':'NT$'}${e.amt.toLocaleString()}</td><td class="n">${nt(twd(e))}${e.cur==='JPY'?`<br><small class="sub">¥${e.amt.toLocaleString()}</small>`:''}</td></tr>`).join('');
   $$('#tb tr').forEach(r=>r.onclick=()=>r.classList.toggle('open'));
 }
-['fDay','fCat','fSub','fCur'].forEach(i=>$('#'+i).onchange=render);
+$('#rate').value=RATE;
 ['fQ','fMin'].forEach(i=>$('#'+i).oninput=render);
-$('#reset').onclick=()=>{['fDay','fCat','fSub','fCur','fQ','fMin'].forEach(i=>$('#'+i).value='');render()};
+$('#reset').onclick=()=>{Object.values(sel).forEach(s=>s.clear());$('#fQ').value='';$('#fMin').value='';update()};
 $('#rate').oninput=()=>{const v=parseFloat($('#rate').value);if(v>0){RATE=v;lstore.set('rate',v);render()}};
 $$('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;sortDir=sortK===k?-sortDir:1;sortK=k;render()});
-render();
+update();
 </script>
 </body>
 </html>

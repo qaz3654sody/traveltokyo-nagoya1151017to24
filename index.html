@@ -12,7 +12,7 @@
   <div class="sub" id="hsub">2026/10/17 ~ 10/24 · 8 天旅遊紀錄</div>
 </header>
 <div class="bar"><div>
-  <nav><a href="#/" id="nHome" class="on">總覽</a><a href="expenses.html">💰 花費分析</a></nav>
+  <nav><a href="#/" id="nHome" class="on">行程總覽</a><a href="expenses.html">💰 花費分析</a></nav>
   <label class="sw"><input type="checkbox" id="tExp"><i></i>花費</label>
   <label class="sw"><input type="checkbox" id="tPp"><i></i>主角 🔒</label>
   <button class="btn" id="btnEdit">✏️<span class="lb"> 編輯</span></button>
@@ -52,6 +52,39 @@ const ICONS=[[/HAPUNA|早餐/,'🍳'],[/機場|Airport|HND|TSA|NGO|TPE/,'✈️'
  [/寶可夢|迪士尼|哈利波特/,'🎮'],[/Bic|UNIQLO|唐吉訶德|松本清|3COINS|大創|PLUSTA/,'🛍️'],[/京急|超市|OK|Life|全家|MaxValu|羅森|日川/,'🛒'],[/家/,'🏠']];
 const iconOf=n=>{for(const [r,e] of ICONS)if(r.test(n))return e;return '📍'};
 
+
+/* ---------- 每天的示意背景 ---------- */
+function scene(d,W,H){
+  const SK={1:['#bfe1ff','#fff3e3'],2:['#b6dcff','#eaf6ff'],3:['#6f66b0','#f4a3a0','#ffe2aa'],4:['#c9e6ff','#fff0f2'],5:['#cfe9ff','#f1f8ff'],6:['#c4dcf2','#f6faff'],7:['#cdeec2','#f2fbea'],8:['#bfe0ff','#fff4de']}[d];
+  const cloud=(x,y,s)=>`<g fill="#fff" opacity=".85"><ellipse cx="${x}" cy="${y}" rx="${30*s}" ry="${11*s}"/><ellipse cx="${x+15*s}" cy="${y-8*s}" rx="${17*s}" ry="${11*s}"/><ellipse cx="${x-15*s}" cy="${y-5*s}" rx="${14*s}" ry="${9*s}"/></g>`;
+  const hills=(col,y,amp,op=1)=>`<path d="M0,${y} Q${W*.25},${y-amp} ${W*.5},${y} T${W},${y} L${W},${H} L0,${H}Z" fill="${col}" opacity="${op}"/>`;
+  const city=(col,base,hMin,hMax,op)=>{let o='',x=-5,i=0;while(x<W){const w=22+((i*29)%24),h=hMin+((i*53)%(hMax-hMin));o+=`<rect x="${x}" y="${base-h}" width="${w}" height="${h}" fill="${col}" opacity="${op}"/>`;
+    for(let k=0;k<h/14;k++)if((i+k)%2)o+=`<rect x="${x+4}" y="${base-h+6+k*14}" width="${w-8}" height="3" fill="#fff" opacity=".35"/>`;x+=w+2;i++}return o};
+  const tree=(x,b,s,c='#5aa469')=>`<rect x="${x-2*s}" y="${b-12*s}" width="${4*s}" height="${12*s}" fill="#8a6a4a"/><polygon points="${x},${b-44*s} ${x-14*s},${b-10*s} ${x+14*s},${b-10*s}" fill="${c}"/><polygon points="${x},${b-56*s} ${x-11*s},${b-28*s} ${x+11*s},${b-28*s}" fill="${c}"/>`;
+  const sun=(x,y,r,c='#ffd27a')=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${c}" opacity=".85"/>`;
+  const plane=(x,y,s)=>`<g transform="translate(${x},${y}) scale(${s})"><ellipse cx="0" cy="0" rx="34" ry="7" fill="#fff"/><polygon points="-6,0 14,-26 22,-26 8,0" fill="#e9eef5"/><polygon points="-6,0 14,26 22,26 8,0" fill="#e9eef5"/><polygon points="-30,-2 -40,-16 -33,-16 -22,-2" fill="#e9eef5"/><rect x="-24" y="-3" width="40" height="2.5" fill="#d9534f"/></g>`;
+  const fuji=(cx,b,w,h)=>`<polygon points="${cx-w/2},${b} ${cx},${b-h} ${cx+w/2},${b}" fill="#7f93bd"/><polygon points="${cx},${b-h} ${cx+w*.15},${b-h*.7} ${cx+w*.07},${b-h*.74} ${cx},${b-h*.66} ${cx-w*.07},${b-h*.74} ${cx-w*.15},${b-h*.7}" fill="#fff"/>`;
+  const torii=(x,b,s)=>`<g fill="#d9534f"><rect x="${x-26*s}" y="${b-64*s}" width="${7*s}" height="${64*s}"/><rect x="${x+19*s}" y="${b-64*s}" width="${7*s}" height="${64*s}"/><rect x="${x-36*s}" y="${b-70*s}" width="${72*s}" height="${8*s}" rx="${3*s}"/><rect x="${x-28*s}" y="${b-52*s}" width="${56*s}" height="${5*s}"/></g>`;
+  const castle=(x,b,s)=>`<g transform="translate(${x},${b}) scale(${s})"><rect x="-40" y="-34" width="80" height="34" fill="#f5efe4"/><polygon points="-52,-34 52,-34 36,-52 -36,-52" fill="#4c8a72"/><rect x="-28" y="-72" width="56" height="20" fill="#f5efe4"/><polygon points="-40,-72 40,-72 26,-88 -26,-88" fill="#4c8a72"/><rect x="-16" y="-104" width="32" height="16" fill="#f5efe4"/><polygon points="-26,-104 26,-104 14,-120 -14,-120" fill="#4c8a72"/><circle cx="-14" cy="-122" r="3" fill="#e8b92f"/><circle cx="14" cy="-122" r="3" fill="#e8b92f"/><rect x="-62" y="-14" width="124" height="14" fill="#9aa5a0" opacity=".7"/></g>`;
+  const tower=(x,b,h)=>`<polygon points="${x},${b-h} ${x-22},${b} ${x+22},${b}" fill="#e0533d"/><polygon points="${x},${b-h*.7} ${x-12},${b-h*.3} ${x+12},${b-h*.3}" fill="#fff" opacity=".6"/><rect x="${x-14}" y="${b-h*.55}" width="28" height="6" fill="#fff"/>`;
+  const sky=(x,b,h)=>`<polygon points="${x-6},${b} ${x-2},${b-h} ${x+2},${b-h} ${x+6},${b}" fill="#7d8fb5"/><ellipse cx="${x}" cy="${b-h*.72}" rx="12" ry="5" fill="#9fb0d0"/><ellipse cx="${x}" cy="${b-h*.82}" rx="9" ry="4" fill="#9fb0d0"/>`;
+  const house=(x,b,s)=>`<g transform="translate(${x},${b}) scale(${s})"><rect x="-22" y="-20" width="44" height="20" fill="#8a6a4a"/><polygon points="-30,-18 30,-18 0,-62" fill="#c9a46a"/><rect x="-6" y="-12" width="12" height="12" fill="#f5e3b8"/></g>`;
+  const train=(x,y,s)=>`<g transform="translate(${x},${y}) scale(${s})"><rect x="-70" y="-14" width="120" height="26" rx="10" fill="#fff"/><path d="M50,-14 Q74,-8 80,12 L50,12Z" fill="#fff"/><rect x="-70" y="-2" width="144" height="4" fill="#2f7d8c"/>${[-56,-36,-16,4,24].map(a=>`<rect x="${a}" y="-9" width="10" height="6" fill="#9ec8e8"/>`).join('')}</g>`;
+  const totoro=(x,b,s)=>`<g transform="translate(${x},${b}) scale(${s})" fill="#8b97a3"><ellipse cx="0" cy="-26" rx="26" ry="30"/><polygon points="-16,-52 -12,-72 -6,-54"/><polygon points="16,-52 12,-72 6,-54"/><ellipse cx="0" cy="-18" rx="16" ry="18" fill="#e9eef2"/><circle cx="-9" cy="-42" r="5" fill="#fff"/><circle cx="9" cy="-42" r="5" fill="#fff"/><circle cx="-9" cy="-42" r="2" fill="#333"/><circle cx="9" cy="-42" r="2" fill="#333"/></g>`;
+  const mount=(col,b,pk)=>`<polygon points="0,${b} ${pk.map(([x,h])=>`${W*x},${b-h}`).join(' ')} ${W},${b}" fill="${col}"/>`;
+  let o=`<defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1">${SK.map((c,i)=>`<stop offset="${i/(SK.length-1)}" stop-color="${c}"/>`).join('')}</linearGradient><clipPath id="mc"><rect width="${W}" height="${H}" rx="18"/></clipPath></defs><g clip-path="url(#mc)"><rect width="${W}" height="${H}" fill="url(#sk)"/>`;
+  const B=H;
+  if(d===1)o+=sun(W*.82,H*.16,26)+cloud(W*.2,H*.14,1)+cloud(W*.55,H*.25,.8)+plane(W*.68,H*.12,.8)+city('#9fb4cc',B,50,110,.55)+city('#7f97b3',B,30,70,.6);
+  if(d===2)o+=cloud(W*.2,H*.13,1)+cloud(W*.72,H*.2,.8)+fuji(W*.62,B-40,W*.8,H*.62)+hills('#79b787',B-34,18,.9)+`<path d="M0,${B-26} Q${W*.3},${B-40} ${W*.6},${B-26} T${W},${B-26} L${W},${B} L0,${B}Z" fill="#8ec5e8" opacity=".85"/>`+tree(W*.1,B-30,1)+tree(W*.2,B-28,.8)+tree(W*.9,B-30,.9);
+  if(d===3)o+=sun(W*.5,H*.62,38,'#ffe9b0')+city('#5b5089',B,50,100,.7)+tower(W*.18,B,H*.62)+sky(W*.84,B,H*.78)+city('#463d77',B,20,50,.8);
+  if(d===4)o+=cloud(W*.25,H*.15,1)+cloud(W*.78,H*.22,.8)+city('#c9b8d8',B,50,120,.5)+hills('#8fc79a',B-24,12,.9)+torii(W*.16,B-12,1.1)+tree(W*.88,B-14,1)+tree(W*.78,B-12,.8);
+  if(d===5)o+=cloud(W*.2,H*.14,1)+cloud(W*.6,H*.1,.7)+castle(W*.78,B-24,1)+hills('#7fbf8e',B-22,14,.9)+train(W*.28,B-46,.8)+`<rect x="0" y="${B-26}" width="${W}" height="3" fill="#8a8f98" opacity=".6"/>`+tree(W*.5,B-24,.8);
+  if(d===6)o+=cloud(W*.3,H*.12,.9)+mount('#a9bfd8',B-30,[[.15,H*.5],[.3,H*.3],[.5,H*.62],[.7,H*.34],[.88,H*.52]])+mount('#d7e4f1',B-30,[[.25,H*.2],[.5,H*.3],[.8,H*.22]])+hills('#8abf7a',B-20,14,.95)+house(W*.2,B-18,1.1)+house(W*.42,B-14,.9)+house(W*.7,B-18,1.15)+tree(W*.58,B-16,.8,'#e08a3a')+tree(W*.9,B-16,.9,'#d9622c');
+  if(d===7)o+=sun(W*.84,H*.14,24)+cloud(W*.25,H*.14,1)+cloud(W*.6,H*.22,.7)+hills('#9bd18a',B-60,26,.9)+hills('#79bd6a',B-30,22,1)+totoro(W*.2,B-24,1.1)+tree(W*.62,B-26,1.2,'#4c9a5a')+tree(W*.8,B-24,1,'#5aa469');
+  if(d===8)o+=sun(W*.2,H*.78,32,'#ffd27a')+cloud(W*.3,H*.2,1.1)+cloud(W*.78,H*.34,.9)+plane(W*.62,H*.16,1)+hills('#cfd8e3',B-20,10,.8)+`<rect x="0" y="${B-16}" width="${W}" height="16" fill="#9aa3ae" opacity=".7"/>`+Array.from({length:Math.floor(W/50)},(_,i)=>`<rect x="${i*50+10}" y="${B-9}" width="26" height="3" fill="#fff" opacity=".8"/>`).join('');
+  return o+'</g>';
+}
+
 /* ---------- 可愛版示意地圖（只看相對位置）---------- */
 function cuteMap(el,d){
   const sp=spotsOf(d),W=Math.max(300,el.clientWidth||340),pad=38,minD=64,H=Math.min(500,300+spotsOf(d).length*22);
@@ -82,8 +115,7 @@ function cuteMap(el,d){
   const dots=Array.from({length:cols*rows},(_,i)=>`<circle cx="${(i%cols)*28+14}" cy="${Math.floor(i/cols)*28+14}" r="1.4" fill="var(--mapdot)"/>`).join('');
   const label=s=>{const t=s.name.replace(/[（(].*$/,'').replace(/^.*?→\s*/,'');return t.length>7?t.slice(0,6)+'…':t};
   el.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="示意地圖">
-    <rect width="${W}" height="${H}" rx="18" fill="var(--mapbg)"/>${dots}
-    <ellipse cx="${W*.15}" cy="${H*.2}" rx="60" ry="24" fill="#fff" opacity=".45"/><ellipse cx="${W*.85}" cy="${H*.82}" rx="70" ry="26" fill="#fff" opacity=".4"/>
+    ${scene(d,W,H)}
     <path d="${path}" fill="none" stroke="${col}" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="2 9" opacity=".8"/>
     ${pts.map(p=>`<g class="pin" data-sid="${p.s.id}" transform="translate(${p.x},${p.y})" style="cursor:pointer">
       <circle r="17" fill="#fff" stroke="${col}" stroke-width="3"/>
@@ -92,7 +124,7 @@ function cuteMap(el,d){
       <text x="13" y="-9.3" text-anchor="middle" font-size="10.5" font-weight="700" fill="#fff">${p.i+1}</text>
       <text y="33" text-anchor="middle" font-size="11" font-weight="600" class="plabel">${esc(label(p.s))}</text>
     </g>`).join('')}
-  </svg>`;
+  </g></svg>`;
   $$('.pin',el).forEach(g=>g.onclick=()=>{const t=document.getElementById(g.dataset.sid);t&&t.scrollIntoView({behavior:'smooth'})});
 }
 
@@ -134,7 +166,7 @@ function pickCover(d){
 function navHTML(d){
   const prev=d>1?`<a class="nbtn" href="#/day/${d-1}"><small>前一天</small>‹ ${shortDate(d-1)}</a>`:'<span></span>';
   const next=d<8?`<a class="nbtn r" href="#/day/${d+1}"><small>下一天</small>${shortDate(d+1)} ›</a>`:'<span></span>';
-  return `<div class="daynav">${prev}<a class="nbtn home" href="#/">🏠<small>總覽</small></a>${next}</div>`;
+  return `<div class="daynav">${prev}<a class="nbtn home" href="#/">🏠<small>行程總覽</small></a>${next}</div>`;
 }
 function itemHTML(s,it,j){
   const edit=document.body.classList.contains('edit');
@@ -147,7 +179,7 @@ function spotHTML(d,s,i){
   const exps=s.exp.map(x=>EX[x]);
   return `<section class="spot" id="${s.id}">
     <div class="t">${s.time}</div>
-    <h3><span class="num" style="background:${COLORS[d-1]}">${i+1}</span>${esc(s.name)}</h3>
+    <h3><span class="num" style="background:${COLORS[d-1]}">${i+1}</span>${esc(s.name)}${s.items.some(x=>x.locked)?` <button class="lkicon" title="這裡有主角照片，點一下輸入密碼查看">🔒<small> 主角照片</small></button>`:''}</h3>
     ${edit?`<textarea class="memo" data-id="${s.id}" placeholder="寫下這個地方的回憶…">${esc(s.memo)}</textarea>`:`<div class="memo ${s.memo?'':'empty'}">${s.memo?esc(s.memo):'（還沒有備註）'}</div>`}
     ${(s.items.length||edit)?`<div class="grid" data-sid="${s.id}">${s.items.map((it,j)=>itemHTML(s,it,j)).join('')}</div>`:''}
     ${edit?`<div class="addrow"><label class="btn">＋ 新增照片<input type="file" accept="image/*" multiple hidden class="addph" data-s="${s.id}"></label>
@@ -172,6 +204,9 @@ function renderDay(d,keepScroll){
   applyPeople();
   if(keepScroll)window.scrollTo(0,y);
 }
+document.addEventListener('click',e=>{
+  if(e.target.closest('.lkicon')){const t=$('#tPp');t.checked=!t.checked;t.dispatchEvent(new Event('change'))}
+});
 document.addEventListener('click',async e=>{
   const g=e.target.closest('.grid');
   const btn=e.target.closest('[data-act]');
