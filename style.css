@@ -226,3 +226,6 @@ body.showexp .sitem.day em{display:block}
 .mvline{flex:1;border-top:2px dashed var(--line)}
 .mvrow .move{margin:6px 0;padding:4px 14px;border:1px solid var(--line);background:var(--card);box-shadow:0 1px 3px rgba(0,0,0,.06);font-weight:600;font-size:13px}
 .mvrow .move.editable{min-width:8em}
+
+.mvrow{padding:0 4px}
+.mvrow .move{flex:none;max-width:88%}
