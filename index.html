@@ -184,7 +184,7 @@ function spotHTML(d,s,i){
     ${(s.items.length||edit)?`<div class="grid" data-sid="${s.id}">${s.items.map((it,j)=>itemHTML(s,it,j)).join('')}</div>`:''}
     ${edit?`<div class="addrow"><label class="btn">＋ 新增照片<input type="file" accept="image/*" multiple hidden class="addph" data-s="${s.id}"></label>
       <label class="sw"><input type="checkbox" class="newlock"><i></i>新增為主角照片（鎖定）</label></div>`:''}
-    ${exps.length?`<div class="exp">${exps.map(e=>`<div><span>${esc(e.name||e.shop||e.sub)}${e.name&&e.shop?` <small>${esc(e.shop)}</small>`:''}<br><small>${esc(e.cat)}・${esc(e.sub)} · ${e.time}</small></span><span style="text-align:right">${money(e)}</span></div>`).join('')}<div class="sum"><span>小計（台幣）</span><span>${nt(sumTWD(exps))}</span></div></div>`:''}
+    ${exps.length?`<div class="exp">${exps.map(e=>`<details class="xi"><summary><span class="xl"><b>${esc(e.place||e.name||e.shop||e.sub)}</b>${e.sum?`<br><small>${esc(e.sum)}</small>`:''}<br><small class="xc">${esc(e.cat)}・${esc(e.sub)} · ${e.time}</small></span><span class="xr">${money(e)}</span></summary><div class="xd">${e.addr?`📍 ${esc(e.addr)}\n\n`:''}${e.flag?`⚠ ${esc(e.flag)}\n\n`:''}${e.desc?esc(e.desc):'（記帳時沒有留下明細）'}</div></details>`).join('')}<div class="sum"><span>小計（台幣）</span><span>${nt(sumTWD(exps))}</span></div></div>`:''}
   </section>`;
 }
 let curDay=0;

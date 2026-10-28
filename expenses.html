@@ -22,6 +22,19 @@
 .top10 span.g{flex:1}
 .top10 small{color:var(--mute)}
 svg text{font-family:inherit}
+
+.daygrid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin:4px 0 10px}
+.dtile{border:2px solid var(--line);border-radius:12px;padding:6px 2px;text-align:center;cursor:pointer;background:var(--bg);user-select:none;line-height:1.25}
+.dtile i{display:flex;align-items:center;justify-content:center;width:24px;height:24px;margin:0 auto 2px;border-radius:50%;background:var(--c);color:#fff;font-style:normal;font-weight:700;font-size:13px}
+.dtile b{display:block;font-size:12px}
+.dtile small{display:block;font-size:10px;color:var(--mute)}
+.dtile.on{border-color:var(--c);background:var(--chip);box-shadow:0 0 0 1px var(--c) inset}
+@media(max-width:600px){.daygrid{grid-template-columns:repeat(4,1fr)}}
+.flag{color:var(--acc);font-size:12px}
+.full{display:none;margin-top:6px;padding:8px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+tr.open .full{display:block}
+.shop{font-weight:600}
+td .sm{font-size:12px;color:var(--mute)}
 </style>
 </head>
 <body>
@@ -36,7 +49,7 @@ svg text{font-family:inherit}
 <main id="app">
   <div class="stats" id="stats"></div>
   <div class="panel">
-    <div class="fl">天數（可複選，不選＝全部）</div><div class="chipgrp" id="gDay"></div>
+    <div class="fl">天數（可複選，不選＝全部）</div><div class="daygrid" id="gDay"></div>
     <div class="fl">主類別</div><div class="chipgrp" id="gCat"></div>
     <div class="fl">子類別（會依選的主類別縮小範圍）</div><div class="chipgrp" id="gSub"></div>
     <div class="fl">幣別</div><div class="chipgrp" id="gCur"></div>
@@ -60,8 +73,8 @@ svg text{font-family:inherit}
     <div class="panel"><b>依商家（前 10）</b><div class="bars alt" id="bShop"></div></div>
   </div>
   <div class="panel"><b>最大額的 10 筆</b><div class="top10" id="top10"></div></div>
-  <div class="panel"><b>明細</b> <span class="sub">（點欄位標題排序、點一列看原始備註）</span>
-    <div class="tw"><table><thead><tr><th data-k="date">日期</th><th data-k="cat">類別</th><th data-k="name">項目</th><th data-k="cur" class="hm">原幣</th><th data-k="twd" class="n">台幣</th></tr></thead><tbody id="tb"></tbody></table></div>
+  <div class="panel"><b>明細</b> <span class="sub">（點欄位標題排序、點一列展開完整明細）</span>
+    <div class="tw"><table><thead><tr><th data-k="date">日期</th><th data-k="cat">類別</th><th data-k="place">店家／購買內容</th><th data-k="cur" class="hm">原幣</th><th data-k="twd" class="n">台幣</th></tr></thead><tbody id="tb"></tbody></table></div>
   </div>
 </main>
 <script src="data.js"></script>
@@ -75,7 +88,7 @@ const uniq=a=>[...new Set(a)];
 const CATS=uniq(E.map(e=>e.cat));
 const SUBOF=cat=>uniq(E.filter(e=>!cat.size||cat.has(e.cat)).map(e=>e.sub));
 let sortK='date',sortDir=1;
-const label=e=>e.name||e.shop||e.sub;
+const label=e=>e.place||e.name||e.shop||e.sub;
 
 function chips(id,items,set,render){
   $(id).innerHTML=items.map(([v,t])=>`<span class="chip sm ${set.has(String(v))?'on':''}" data-v="${esc(v)}">${esc(t)}</span>`).join('');
@@ -84,7 +97,8 @@ function chips(id,items,set,render){
 function drawFilters(){
   // 子類別依主類別縮小；已選但不在範圍內的自動取消
   const subs=SUBOF(sel.cat);[...sel.sub].forEach(s=>{if(!subs.includes(s))sel.sub.delete(s)});
-  chips('#gDay',[...Array(8)].map((_,i)=>[i+1,`D${i+1} ${T.days[i].date.split(' ')[0]}`]),sel.day,update);
+  $('#gDay').innerHTML=T.days.map(d=>{const [md,wd]=d.date.split(' ');return `<div class="dtile ${sel.day.has(String(d.day))?'on':''}" data-v="${d.day}" style="--c:${COLORS[d.day-1]}"><i>${d.day}</i><b>${md}</b><small>${wd}</small></div>`}).join('');
+  $$('#gDay .dtile').forEach(c=>c.onclick=()=>{const v=c.dataset.v;sel.day.has(v)?sel.day.delete(v):sel.day.add(v);update()});
   chips('#gCat',CATS.map(c=>[c,c]),sel.cat,update);
   chips('#gSub',subs.map(c=>[c,c]),sel.sub,update);
   chips('#gCur',[['JPY','日圓 JPY'],['TWD','台幣 TWD']],sel.cur,update);
@@ -92,7 +106,7 @@ function drawFilters(){
 function filtered(){
   const q=$('#fQ').value.trim().toLowerCase(),m=+$('#fMin').value||0;
   return E.filter(e=>(!sel.day.size||sel.day.has(String(e.day)))&&(!sel.cat.size||sel.cat.has(e.cat))&&(!sel.sub.size||sel.sub.has(e.sub))&&(!sel.cur.size||sel.cur.has(e.cur))&&twd(e)>=m&&
-    (!q||(e.name+e.shop+e.desc+e.sub+e.cat).toLowerCase().includes(q)));
+    (!q||(e.place+e.addr+e.sum+e.name+e.shop+e.desc+e.sub+e.cat).toLowerCase().includes(q)));
 }
 function group(list,key){const m={};list.forEach(e=>{const k=key(e);m[k]=(m[k]||0)+twd(e)});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
 function bars(id,rows,limit){
@@ -143,12 +157,12 @@ function render(){
   bars('#bDay',group(L,e=>'Day '+e.day).sort((a,b)=>a[0].localeCompare(b[0],'en',{numeric:true})));
   const order=['凌晨 0–6','早上 6–11','中午 11–14','下午 14–18','晚上 18–24'];
   bars('#bHour',group(L,e=>hourBucket(e.time)).sort((a,b)=>order.indexOf(a[0])-order.indexOf(b[0])));
-  bars('#bShop',group(L,e=>e.shop||'（未填商家）'),10);
-  $('#top10').innerHTML=[...L].sort((a,b)=>twd(b)-twd(a)).slice(0,10).map((e,i)=>`<div><b>${i+1}</b><span class="g">${esc(label(e))}<br><small>Day ${e.day} · ${esc(e.cat)}・${esc(e.sub)}</small></span><span>${nt(twd(e))}</span></div>`).join('')||'<span class="sub">沒有資料</span>';
+  bars('#bShop',group(L,e=>e.place||'（未填商家）'),10);
+  $('#top10').innerHTML=[...L].sort((a,b)=>twd(b)-twd(a)).slice(0,10).map((e,i)=>`<div><b>${i+1}</b><span class="g">${esc(label(e))}<br><small>Day ${e.day} · ${esc(e.sum.slice(0,36))}</small></span><span>${nt(twd(e))}</span></div>`).join('')||'<span class="sub">沒有資料</span>';
   const rows=[...L].sort((a,b)=>{
     const g=e=>sortK==='twd'?twd(e):sortK==='date'?e.date+e.time:(e[sortK]||'');
     const x=g(a),y=g(b);return (x>y?1:x<y?-1:0)*sortDir});
-  $('#tb').innerHTML=rows.map(e=>`<tr class="row"><td>${e.date.slice(5)}<br><small class="sub">${e.time}</small></td><td>${esc(e.cat)}<br><small class="sub">${esc(e.sub)}</small></td><td>${esc(label(e))}${e.name&&e.shop?`<br><small class="sub">${esc(e.shop)}</small>`:''}<div class="desc">${esc(e.desc)}</div></td><td class="n hm">${e.cur==='JPY'?'¥':'NT$'}${e.amt.toLocaleString()}</td><td class="n">${nt(twd(e))}${e.cur==='JPY'?`<br><small class="sub">¥${e.amt.toLocaleString()}</small>`:''}</td></tr>`).join('');
+  $('#tb').innerHTML=rows.map(e=>`<tr class="row"><td>${e.date.slice(5)}<br><small class="sub">${e.time}</small></td><td><div class="shop">${esc(label(e))}</div>${e.addr?`<div class="sm">📍 ${esc(e.addr)}</div>`:''}<div>${esc(e.sum)}</div><div class="sm">${esc(e.cat)}・${esc(e.sub)}</div>${e.flag?`<div class="flag">⚠ ${esc(e.flag)}</div>`:''}<div class="full">${e.desc?esc(e.desc):'（記帳時沒有留下明細）'}</div></td><td class="n hm">${e.cur==='JPY'?'¥':'NT$'}${e.amt.toLocaleString()}</td><td class="n">${nt(twd(e))}${e.cur==='JPY'?`<br><small class="sub">¥${e.amt.toLocaleString()}</small>`:''}</td></tr>`).join('');
   $$('#tb tr').forEach(r=>r.onclick=()=>r.classList.toggle('open'));
 }
 $('#rate').value=RATE;

@@ -165,3 +165,11 @@ body.showexp .only-exp{display:block}
 
 #dmap.cmap{height:auto}
 @media(max-width:600px){#dmap.cmap{height:auto}}
+
+.xi{border-bottom:1px dashed var(--line);padding:3px 0}
+.xi summary{display:flex;justify-content:space-between;gap:10px;cursor:pointer;list-style:none;padding:2px 0}
+.xi summary::-webkit-details-marker{display:none}
+.xl{flex:1;min-width:0}.xl small{color:var(--mute)}.xl .xc{font-size:11px}
+.xr{text-align:right;white-space:nowrap}
+.xd{white-space:pre-wrap;word-break:break-word;font-size:12px;color:var(--mute);background:var(--bg);border-radius:8px;padding:8px;margin:4px 0}
+.exp>div.sum{display:flex;justify-content:space-between}
