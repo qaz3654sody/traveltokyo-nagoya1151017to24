@@ -206,7 +206,6 @@ async function saveNotes(){
     const sha=await shaOf('notes.json');
     const r=await fetch(api('notes.json'),{method:'PUT',headers:H,body:JSON.stringify({message:'update notes',content:btoa(unescape(encodeURIComponent(json))),sha})});
     if(!r.ok)throw new Error('notes.json '+r.status);
-    T.days.forEach(d=>d.spots.forEach(s=>{BASE_ITEMS[s.id]=JSON.stringify(s.items);BASE_VIA[s.id]=JSON.stringify(s.via||[])}));
     say('已儲存');alert('已儲存！網站約 1 分鐘後更新。');
   }catch(e){
     say('儲存失敗');
