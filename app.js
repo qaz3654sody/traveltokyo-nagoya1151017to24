@@ -86,14 +86,14 @@ function bindLB(){
 }
 
 /* ---------- 備註／標題／封面／照片清單（notes.json）---------- */
-let NOTES={},BASE_ITEMS={},BASE_NAME={},BASE_MOVE={};
+let NOTES={},BASE_ITEMS={},BASE_VIA={},BASE_NAME={},BASE_MOVE={};
 async function loadNotes(){
-  T.days.forEach(d=>d.spots.forEach(s=>{BASE_ITEMS[s.id]=JSON.stringify(s.items);BASE_NAME[s.id]=s.name;BASE_MOVE[s.id]=(window.MOVES||{})[s.id]||'';s.move=BASE_MOVE[s.id]}));
+  T.days.forEach(d=>d.spots.forEach(s=>{BASE_ITEMS[s.id]=JSON.stringify(s.items);BASE_VIA[s.id]=JSON.stringify(s.via||[]);BASE_NAME[s.id]=s.name;BASE_MOVE[s.id]=(window.MOVES||{})[s.id]||'';s.move=BASE_MOVE[s.id]}));
   try{const r=await fetch('notes.json?'+Date.now());if(r.ok)NOTES=await r.json()}catch(_){}
   T.covers=NOTES._covers||{};T.titles=NOTES._titles||{};
   const ph=NOTES._photos||{};
-  const nm=NOTES._names||{},mv=NOTES._moves||{};
-  T.days.forEach(d=>d.spots.forEach(s=>{if(s.id in NOTES)s.memo=NOTES[s.id];if(ph[s.id])s.items=ph[s.id];if(nm[s.id])s.name=nm[s.id];if(s.id in mv)s.move=mv[s.id]}));
+  const nm=NOTES._names||{},mv=NOTES._moves||{},vi=NOTES._via||{};
+  T.days.forEach(d=>d.spots.forEach(s=>{if(s.id in NOTES)s.memo=NOTES[s.id];if(ph[s.id])s.items=ph[s.id];if(vi[s.id])s.via=vi[s.id];if(nm[s.id])s.name=nm[s.id];if(s.id in mv)s.move=mv[s.id]}));
 }
 function titleOf(k,def){return (T.titles&&T.titles[k])||def}
 function applyTitles(){
@@ -138,8 +138,8 @@ async function plainBlobOf(it){
   if(it.locked){const u=await decFile(it.id);return (await fetch(u)).blob()}
   return (await fetch(`photos/${it.id}.jpg`)).blob();
 }
-async function toggleLock(s,i){
-  const it=s.items[i];const blob=await plainBlobOf(it);
+async function toggleLock(s,i,key='items'){
+  const it=s[key][i];const blob=await plainBlobOf(it);
   if(!it.locked){
     setOp(`photos/${it.id}.bin`,{t:'put',blob:await encryptBlob(blob)});
     setOp(`photos/${it.id}.jpg`,{t:'del'});setOp(`photos/${it.id}_t.jpg`,{t:'del'});
@@ -151,12 +151,12 @@ async function toggleLock(s,i){
     LOCAL[it.id]={thumb:urlOf(th),full:urlOf(blob)};it.locked=false;
   }
 }
-function removeItem(s,i){
-  const it=s.items[i];
+function removeItem(s,i,key='items'){
+  const it=s[key][i];
   if(it.locked)setOp(`photos/${it.id}.bin`,{t:'del'});else{setOp(`photos/${it.id}.jpg`,{t:'del'});setOp(`photos/${it.id}_t.jpg`,{t:'del'})}
-  s.items.splice(i,1);
+  s[key].splice(i,1);
 }
-function moveItem(s,i,d){const j=i+d;if(j<0||j>=s.items.length)return;[s.items[i],s.items[j]]=[s.items[j],s.items[i]]}
+function moveItem(s,i,d,key='items'){const j=i+d,L=s[key];if(j<0||j>=L.length)return;[L[i],L[j]]=[L[j],L[i]]}
 async function addPhotos(s,files,lock){
   let n=0;
   for(const f of files){
@@ -178,8 +178,8 @@ function ghToken(){
 const toB64=blob=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result.split(',')[1]);fr.readAsDataURL(blob)});
 async function saveNotes(){
   const bar=$('#savemsg');const say=t=>{if(bar)bar.textContent=t};
-  const out={_covers:T.covers||{},_titles:T.titles||{},_photos:{},_names:{},_moves:{}};
-  T.days.forEach(d=>d.spots.forEach(s=>{out[s.id]=s.memo;if(s.name!==BASE_NAME[s.id])out._names[s.id]=s.name;if((s.move||'')!==BASE_MOVE[s.id])out._moves[s.id]=s.move||'';if(JSON.stringify(s.items)!==BASE_ITEMS[s.id])out._photos[s.id]=s.items}));
+  const out={_covers:T.covers||{},_titles:T.titles||{},_photos:{},_via:{},_names:{},_moves:{}};
+  T.days.forEach(d=>d.spots.forEach(s=>{out[s.id]=s.memo;if(s.name!==BASE_NAME[s.id])out._names[s.id]=s.name;if((s.move||'')!==BASE_MOVE[s.id])out._moves[s.id]=s.move||'';if(JSON.stringify(s.items)!==BASE_ITEMS[s.id])out._photos[s.id]=s.items;if(JSON.stringify(s.via||[])!==BASE_VIA[s.id])out._via[s.id]=s.via||[]}));
   const json=JSON.stringify(out,null,1);
   const tok=T.repo?ghToken():'';
   if(!tok){
@@ -206,7 +206,7 @@ async function saveNotes(){
     const sha=await shaOf('notes.json');
     const r=await fetch(api('notes.json'),{method:'PUT',headers:H,body:JSON.stringify({message:'update notes',content:btoa(unescape(encodeURIComponent(json))),sha})});
     if(!r.ok)throw new Error('notes.json '+r.status);
-    T.days.forEach(d=>d.spots.forEach(s=>{BASE_ITEMS[s.id]=JSON.stringify(s.items)}));
+    T.days.forEach(d=>d.spots.forEach(s=>{BASE_ITEMS[s.id]=JSON.stringify(s.items);BASE_VIA[s.id]=JSON.stringify(s.via||[])}));
     say('已儲存');alert('已儲存！網站約 1 分鐘後更新。');
   }catch(e){
     say('儲存失敗');

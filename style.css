@@ -265,3 +265,10 @@ body.showexp .sitem.day em{display:block}
   body.hasside:not(.sidecollapsed) .bar>div,
   body.hasside:not(.sidecollapsed) main{margin-left:28px;margin-right:auto;max-width:960px}
 }
+
+.mvrow{flex-wrap:wrap;align-items:center}
+.mvphotos{flex:1;display:flex;gap:6px;flex-wrap:wrap;min-width:120px;justify-content:flex-start}
+.mvphotos .ph{width:64px}
+.mvphotos .ph img{width:64px;height:64px;aspect-ratio:auto;border-radius:8px}
+.mvphotos .pctl button{font-size:11px;padding:2px 2px}
+@media(max-width:600px){.mvphotos .ph,.mvphotos .ph img{width:56px}.mvphotos .ph img{height:56px}}
