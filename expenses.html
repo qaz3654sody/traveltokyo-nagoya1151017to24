@@ -35,6 +35,10 @@ svg text{font-family:inherit}
 tr.open .full{display:block}
 .shop{font-weight:600}
 td .sm{font-size:12px;color:var(--mute)}
+
+.chip.sm[style*="--cc"]{background:color-mix(in srgb,var(--cc) 16%,var(--bg));border-color:color-mix(in srgb,var(--cc) 55%,transparent)}
+.chip.sm[style*="--cc"].on{background:var(--cc);border-color:var(--cc);color:#fff;text-shadow:0 0 2px rgba(0,0,0,.35)}
+.cdot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:4px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -43,7 +47,7 @@ td .sm{font-size:12px;color:var(--mute)}
   <div class="sub">資料來源：MOZE 記帳 · 日圓依匯率換算成台幣統計</div>
 </header>
 <div class="bar"><div>
-  <nav><a href="index.html">行程總覽</a><a href="expenses.html" class="on">💰 花費分析</a></nav>
+  <nav><a href="index.html">🗺️ 行程總覽</a><a href="expenses.html" class="on">💰 花費分析</a></nav>
   <label class="sw" style="gap:6px">匯率 <input id="rate" class="rin" type="number" step="0.001" min="0.05" max="1" style="width:80px;padding:4px 6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)"></label>
 </div></div>
 <main id="app">
@@ -82,6 +86,13 @@ td .sm{font-size:12px;color:var(--mute)}
 <script src="app.js"></script>
 <script>
 const E=window.EXPENSES;
+const CAT_COL={交通:'#3d6fb5',飲食:'#e8883a',生活:'#7a57b5',個人:'#b5578f',家居:'#4c9a5a',購物:'#d9534f',娛樂:'#c9a227',醫療:'#2f7d8c'};
+function hslOf(hex){const r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),l=(mx+mn)/2;let h=0,s=0;if(mx!==mn){const d=mx-mn;s=l>.5?d/(2-mx-mn):d/(mx+mn);h=mx===r?(g-b)/d+(g<b?6:0):mx===g?(b-r)/d+2:(r-g)/d+4;h*=60}return [Math.round(h),Math.round(s*100),Math.round(l*100)]}
+const SUBS_BY_CAT={};E.forEach(x=>{(SUBS_BY_CAT[x.cat]=SUBS_BY_CAT[x.cat]||[]);if(!SUBS_BY_CAT[x.cat].includes(x.sub))SUBS_BY_CAT[x.cat].push(x.sub)});
+const SUB_CAT={};E.forEach(x=>SUB_CAT[x.sub]=x.cat);
+const catColor=c=>CAT_COL[c]||'#8a7f76';
+function subColor(sub){const cat=SUB_CAT[sub],list=SUBS_BY_CAT[cat]||[sub],i=list.indexOf(sub),n=list.length;const [h,s]=hslOf(catColor(cat));const L=n>1?34+(i/(n-1))*34:50;return `hsl(${h},${s}%,${L}%)`}
+const keyColor=k=>CAT_COL[k]?CAT_COL[k]:(SUB_CAT[k]?subColor(k):null);
 const PAL=['#d9534f','#e8883a','#c9a227','#4c9a5a','#2f7d8c','#3d6fb5','#7a57b5','#b5578f','#8a7f76','#5fa8a0'];
 const sel={day:new Set(),cat:new Set(),sub:new Set(),cur:new Set()};
 const uniq=a=>[...new Set(a)];
@@ -90,8 +101,8 @@ const SUBOF=cat=>uniq(E.filter(e=>!cat.size||cat.has(e.cat)).map(e=>e.sub));
 let sortK='date',sortDir=1;
 const label=e=>e.place||e.name||e.shop||e.sub;
 
-function chips(id,items,set,render){
-  $(id).innerHTML=items.map(([v,t])=>`<span class="chip sm ${set.has(String(v))?'on':''}" data-v="${esc(v)}">${esc(t)}</span>`).join('');
+function chips(id,items,set,render,colorFn){
+  $(id).innerHTML=items.map(([v,t])=>{const c=colorFn?colorFn(v):null;return `<span class="chip sm ${set.has(String(v))?'on':''}" data-v="${esc(v)}"${c?` style="--cc:${c}"`:''}>${esc(t)}</span>`}).join('');
   $$(id+' .chip').forEach(c=>c.onclick=()=>{const v=c.dataset.v;set.has(v)?set.delete(v):set.add(v);render()});
 }
 function drawFilters(){
@@ -99,8 +110,8 @@ function drawFilters(){
   const subs=SUBOF(sel.cat);[...sel.sub].forEach(s=>{if(!subs.includes(s))sel.sub.delete(s)});
   $('#gDay').innerHTML=T.days.map(d=>{const [md,wd]=d.date.split(' ');return `<div class="dtile ${sel.day.has(String(d.day))?'on':''}" data-v="${d.day}" style="--c:${COLORS[d.day-1]}"><i>${d.day}</i><b>${md}</b><small>${wd}</small></div>`}).join('');
   $$('#gDay .dtile').forEach(c=>c.onclick=()=>{const v=c.dataset.v;sel.day.has(v)?sel.day.delete(v):sel.day.add(v);update()});
-  chips('#gCat',CATS.map(c=>[c,c]),sel.cat,update);
-  chips('#gSub',subs.map(c=>[c,c]),sel.sub,update);
+  chips('#gCat',CATS.map(c=>[c,c]),sel.cat,update,catColor);
+  chips('#gSub',subs.map(c=>[c,c]),sel.sub,update,subColor);
   chips('#gCur',[['JPY','日圓 JPY'],['TWD','台幣 TWD']],sel.cur,update);
 }
 function filtered(){
@@ -109,19 +120,20 @@ function filtered(){
     (!q||(e.place+e.addr+e.sum+e.name+e.shop+e.desc+e.sub+e.cat).toLowerCase().includes(q)));
 }
 function group(list,key){const m={};list.forEach(e=>{const k=key(e);m[k]=(m[k]||0)+twd(e)});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
-function bars(id,rows,limit){
+function bars(id,rows,limit,colorFn){
   rows=rows.slice(0,limit||99);const max=Math.max(1,...rows.map(r=>r[1]));
-  $(id).innerHTML=rows.map(([k,v])=>`<div class="r"><span class="l" title="${esc(k)}">${esc(k)}</span><span><div class="b" style="width:${v/max*100}%"></div></span><span class="v">${nt(v)}</span></div>`).join('')||'<span class="sub">沒有資料</span>';
+  $(id).innerHTML=rows.map(([k,v])=>`<div class="r"><span class="l" title="${esc(k)}">${esc(k)}</span><span><div class="b" style="width:${v/max*100}%${colorFn&&colorFn(k)?';background:'+colorFn(k):''}"></div></span><span class="v">${nt(v)}</span></div>`).join('')||'<span class="sub">沒有資料</span>';
 }
-function donut(id,rows,top){
+function donut(id,rows,top,colorFn){
+  const colOf=(k,i)=>(colorFn&&colorFn(k))||PAL[i%PAL.length];
   let r=rows.filter(x=>x[1]>0);
   if(top&&r.length>top){const rest=r.slice(top).reduce((a,x)=>a+x[1],0);r=r.slice(0,top).concat([['其他',rest]])}
   const tot=r.reduce((a,x)=>a+x[1],0);
   if(!tot){$(id).innerHTML='<span class="sub">沒有資料</span>';return}
   const R=58,C=2*Math.PI*R;let off=0;
-  const arcs=r.map(([k,v],i)=>{const f=v/tot,dash=f*C;const el=`<circle r="${R}" cx="80" cy="80" fill="none" stroke="${PAL[i%PAL.length]}" stroke-width="30" stroke-dasharray="${dash} ${C-dash}" stroke-dashoffset="${-off}" transform="rotate(-90 80 80)"><title>${esc(k)} ${nt(v)}（${(f*100).toFixed(1)}%）</title></circle>`;off+=dash;return el}).join('');
+  const arcs=r.map(([k,v],i)=>{const f=v/tot,dash=f*C;const el=`<circle r="${R}" cx="80" cy="80" fill="none" stroke="${colOf(k,i)}" stroke-width="30" stroke-dasharray="${dash} ${C-dash}" stroke-dashoffset="${-off}" transform="rotate(-90 80 80)"><title>${esc(k)} ${nt(v)}（${(f*100).toFixed(1)}%）</title></circle>`;off+=dash;return el}).join('');
   $(id).innerHTML=`<svg width="160" height="160" viewBox="0 0 160 160">${arcs}<text x="80" y="76" text-anchor="middle" font-size="11" fill="var(--mute)">合計</text><text x="80" y="94" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${nt(tot)}</text></svg>
-  <div class="legend">${r.map(([k,v],i)=>`<div><i style="background:${PAL[i%PAL.length]}"></i><span>${esc(k)}</span><span class="v">${nt(v)}</span><span class="p">${(v/tot*100).toFixed(1)}%</span></div>`).join('')}</div>`;
+  <div class="legend">${r.map(([k,v],i)=>`<div><i style="background:${colOf(k,i)}"></i><span>${esc(k)}</span><span class="v">${nt(v)}</span><span class="p">${(v/tot*100).toFixed(1)}%</span></div>`).join('')}</div>`;
 }
 function lineChart(L){
   const per=[...Array(8)].map((_,i)=>sumTWD(L.filter(e=>e.day===i+1)));
@@ -150,8 +162,8 @@ function render(){
     [nt(L.length?Math.max(...L.map(twd)):0),'單筆最高']
   ].map(([b,s])=>`<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
   $('#cnt').textContent=`共 ${L.length} 筆`;
-  donut('#dCat',group(L,e=>e.cat));
-  donut('#dSub',group(L,e=>e.sub),8);
+  donut('#dCat',group(L,e=>e.cat),0,keyColor);
+  donut('#dSub',group(L,e=>e.sub),8,keyColor);
   donut('#dCur',group(L,e=>e.cur==='JPY'?'日圓花費（換算）':'台幣花費'));
   lineChart(L);
   bars('#bDay',group(L,e=>'Day '+e.day).sort((a,b)=>a[0].localeCompare(b[0],'en',{numeric:true})));
@@ -162,7 +174,7 @@ function render(){
   const rows=[...L].sort((a,b)=>{
     const g=e=>sortK==='twd'?twd(e):sortK==='date'?e.date+e.time:(e[sortK]||'');
     const x=g(a),y=g(b);return (x>y?1:x<y?-1:0)*sortDir});
-  $('#tb').innerHTML=rows.map(e=>`<tr class="row"><td>${e.date.slice(5)}<br><small class="sub">${e.time}</small></td><td><div class="shop">${esc(label(e))}</div>${e.addr?`<div class="sm">📍 ${esc(e.addr)}</div>`:''}<div>${esc(e.sum)}</div><div class="sm">${esc(e.cat)}・${esc(e.sub)}</div>${e.flag?`<div class="flag">⚠ ${esc(e.flag)}</div>`:''}<div class="full">${e.desc?esc(e.desc):'（記帳時沒有留下明細）'}</div></td><td class="n hm">${e.cur==='JPY'?'¥':'NT$'}${e.amt.toLocaleString()}</td><td class="n">${nt(twd(e))}${e.cur==='JPY'?`<br><small class="sub">¥${e.amt.toLocaleString()}</small>`:''}</td></tr>`).join('');
+  $('#tb').innerHTML=rows.map(e=>`<tr class="row"><td>${e.date.slice(5)}<br><small class="sub">${e.time}</small></td><td><div class="shop">${esc(label(e))}</div>${e.addr?`<div class="sm">📍 ${esc(e.addr)}</div>`:''}<div>${esc(e.sum)}</div><div class="sm"><span class="cdot" style="background:${subColor(e.sub)}"></span>${esc(e.cat)}・${esc(e.sub)}</div>${e.flag?`<div class="flag">⚠ ${esc(e.flag)}</div>`:''}<div class="full">${e.desc?esc(e.desc):'（記帳時沒有留下明細）'}</div></td><td class="n hm">${e.cur==='JPY'?'¥':'NT$'}${e.amt.toLocaleString()}</td><td class="n">${nt(twd(e))}${e.cur==='JPY'?`<br><small class="sub">¥${e.amt.toLocaleString()}</small>`:''}</td></tr>`).join('');
   $$('#tb tr').forEach(r=>r.onclick=()=>r.classList.toggle('open'));
 }
 $('#rate').value=RATE;
@@ -171,6 +183,8 @@ $('#reset').onclick=()=>{Object.values(sel).forEach(s=>s.clear());$('#fQ').value
 $('#rate').oninput=()=>{const v=parseFloat($('#rate').value);if(v>0){RATE=v;lstore.set('rate',v);render()}};
 $$('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;sortDir=sortK===k?-sortDir:1;sortK=k;render()});
 update();
+initSide();
+window.addEventListener('ratechange',()=>{$('#rate').value=RATE;render()});
 </script>
 </body>
 </html>

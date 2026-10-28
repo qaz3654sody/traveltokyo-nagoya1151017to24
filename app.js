@@ -225,3 +225,36 @@ function bindEdit(rerender){
   };
   $('#btnSave').onclick=saveNotes;
 }
+
+/* ---------- 側邊欄（電腦版固定在左側，手機版從左滑出）---------- */
+function initSide(){
+  if($('#side'))return;
+  document.body.classList.add('hasside');
+  const bar=$('.bar>div');
+  if(bar){const b=document.createElement('button');b.className='btn';b.id='btnMenu';b.textContent='☰';b.title='選單';bar.prepend(b);b.onclick=()=>document.body.classList.toggle('sideopen')}
+  const mask=document.createElement('div');mask.id='sidemask';mask.onclick=()=>document.body.classList.remove('sideopen');
+  const side=document.createElement('aside');side.id='side';
+  document.body.append(mask,side);
+  side.addEventListener('click',e=>{if(e.target.closest('a'))document.body.classList.remove('sideopen')});
+  window.addEventListener('hashchange',updateSide);
+  updateSide();
+}
+function updateSide(){
+  const side=$('#side');if(!side)return;
+  const onExp=/expenses\.html/.test(location.pathname);
+  const m=location.hash.match(/#\/day\/(\d)/);const cur=m?+m[1]:0;
+  const exp=window.EXPENSES||[];
+  side.innerHTML=`<div class="sidehd"><b>🧳 旅程選單</b><button class="btn" id="sideclose">✕</button></div>
+  <a class="sitem ${!onExp&&!cur?'on':''}" href="index.html#/">🗺️ 行程總覽</a>
+  <div class="sgrp">每日行程</div>
+  ${T.days.map(d=>`<a class="sitem day ${!onExp&&cur===d.day?'on':''}" href="index.html#/day/${d.day}" style="--c:${COLORS[d.day-1]}"><i>${d.day}</i><span><b>${d.date}</b><small>${esc(titleOf('d'+d.day,d.title))}</small></span><em class="only-exp">${nt(sumTWD(exp.filter(e=>e.day===d.day)))}</em></a>`).join('')}
+  <div class="sgrp">分析</div>
+  <a class="sitem ${onExp?'on':''}" href="expenses.html">💰 花費分析</a>
+  <div class="sgrp">工具</div>
+  <button class="sitem" id="sEdit">✏️ 編輯模式（備註／照片／標題／移動方式）</button>
+  <div class="sitem static">日圓匯率 <input id="sRate" type="number" step="0.001" min="0.05" max="1" value="${RATE}"></div>
+  <div class="sitem static small">主角照片、花費明細的開關在上方列。花費是依匯率換算成台幣統計。</div>`;
+  $('#sideclose').onclick=()=>document.body.classList.remove('sideopen');
+  $('#sEdit').onclick=()=>{document.body.classList.remove('sideopen');const b=$('#btnEdit');if(b)b.click();else location.href='index.html#/'};
+  $('#sRate').onchange=e=>{const v=parseFloat(e.target.value);if(v>0){RATE=v;lstore.set('rate',v);window.dispatchEvent(new Event('ratechange'))}};
+}

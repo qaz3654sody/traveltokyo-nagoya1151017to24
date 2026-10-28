@@ -177,3 +177,32 @@ body.showexp .only-exp{display:block}
 .move{display:inline-block;margin:2px 0 6px;padding:3px 10px;border-radius:12px;background:var(--chip);font-size:12.5px;color:var(--ink)}
 .move.editable:empty::before{content:attr(data-ph);color:var(--mute)}
 .sname.editable{min-width:3em}
+
+/* 側邊欄 */
+#side{position:fixed;top:0;left:0;bottom:0;width:272px;background:var(--card);border-right:1px solid var(--line);z-index:1500;overflow-y:auto;padding:12px 10px 30px;transform:translateX(-102%);transition:transform .25s}
+body.sideopen #side{transform:none;box-shadow:4px 0 20px rgba(0,0,0,.25)}
+#sidemask{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1400;display:none}
+body.sideopen #sidemask{display:block}
+.sidehd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.sgrp{font-size:12px;color:var(--mute);margin:14px 6px 4px}
+.sitem{display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:0;border-radius:10px;background:none;color:var(--ink);text-decoration:none;font:inherit;font-size:14px;text-align:left;cursor:pointer}
+.sitem:hover{background:var(--chip)}
+.sitem.on{background:var(--chip);font-weight:700}
+.sitem.day i{flex:none;display:flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--c);color:#fff;font-style:normal;font-weight:700;font-size:13px}
+.sitem.day span{flex:1;min-width:0;line-height:1.3}
+.sitem.day b{display:block;font-size:13px}
+.sitem.day small{display:block;font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sitem.day em{display:none;font-style:normal;font-size:11px;color:var(--acc);font-weight:600}
+body.showexp .sitem.day em{display:block}
+.sitem.static{cursor:default}.sitem.static:hover{background:none}
+.sitem.small{font-size:12px;color:var(--mute)}
+.sitem input{width:80px;padding:3px 6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+@media(min-width:1100px){
+  #btnMenu{display:none}
+  #side{transform:none;box-shadow:none}
+  body.hasside{padding-left:272px}
+  #sideclose{display:none}
+  #sidemask{display:none!important}
+}
+.dayline{margin:4px 0 8px;padding:8px 12px;border-radius:12px;background:var(--chip);font-size:13.5px;line-height:1.6}
+.nodelabel{fill:#2b2622;paint-order:stroke;stroke:rgba(255,255,255,.95);stroke-width:3.5px;stroke-linejoin:round;font-weight:600}
