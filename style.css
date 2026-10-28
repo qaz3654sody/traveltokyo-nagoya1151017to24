@@ -272,3 +272,8 @@ body.showexp .sitem.day em{display:block}
 .mvphotos .ph img{width:64px;height:64px;aspect-ratio:auto;border-radius:8px}
 .mvphotos .pctl button{font-size:11px;padding:2px 2px}
 @media(max-width:600px){.mvphotos .ph,.mvphotos .ph img{width:56px}.mvphotos .ph img{height:56px}}
+
+.dgrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.dcard{min-width:0;overflow:hidden}
+.dcard img{max-width:100%;min-width:0}
+@media(max-width:900px){.dgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
