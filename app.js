@@ -238,6 +238,9 @@ function toggleSide(){
 function initSide(){
   if($('#side'))return;
   document.body.classList.add('hasside');
+  const nav=$('.bar nav');
+  if(nav){const onExp=/expenses\.html/.test(location.pathname);
+    nav.innerHTML=`<a href="index.html#/" id="nHome" class="${onExp?'':'on'}">${IC_MAP}行程總覽</a><a href="expenses.html" class="${onExp?'on':''}">${IC_COIN}花費分析</a>`}
   if(lstore.get('sidecollapsed','0')==='1')document.body.classList.add('sidecollapsed');
   const bar=$('.bar>div');
   if(bar){const b=document.createElement('button');b.className='btn';b.id='btnMenu';b.textContent='☰';b.title='選單';bar.prepend(b);b.onclick=toggleSide}
