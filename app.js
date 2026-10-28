@@ -274,3 +274,84 @@ function updateSide(){
   $('#sEdit').onclick=()=>{document.body.classList.remove('sideopen');const b=$('#btnEdit');if(b)b.click();else location.href='index.html#/'};
   $('#sRate').onchange=e=>{const v=parseFloat(e.target.value);if(v>0){RATE=v;lstore.set('rate',v);window.dispatchEvent(new Event('ratechange'))}};
 }
+
+/* ---------- 消費明細排版：把記帳備註拆成「店家資訊／品項表格／金額結算／備註」---------- */
+const TOT_KEY=/^([（(]|合計|小計|實收|找零|支付|總額|折扣|折抵|結帳|現金|未稅|含稅|免稅金額|免稅折|免稅原|免稅對象|免稅扣|消費稅|稅|\d+%|商品|優惠券折|優惠券 |原|折後|外加|內含|實付|多件|共|利用|應用程式優惠券|實收消費|訪日|消費稅額|金額)/;
+const META_KEY=/^(購買店家|地點|消費時間|日期時間|桌號|服務類別|乘車區間|行駛距離|乘車時間|航班資訊|票券類別|購入日期|取票|乘車日期|乘車日|列車名|搭乘區間|引渡張數|品名|說明|價格|購買門市|電話|登錄編號|購買時間)/;
+const HDR_ITEMS=/^(購買項目|購買品項明細|搭乘資訊與項目|交易明細|費用明細)/;
+const UNIT_TAG=/(原含稅|原免稅|含稅|未稅|免稅)?單價/;
+function parseItemLine(t){
+  const s=t.replace(/^\d+\.\s*/,'');
+  const i=s.indexOf('：');
+  if(i<0)return null;
+  const nameFull=s.slice(0,i),rest=s.slice(i+1).trim();
+  const jpm=nameFull.match(/（([^（）]*)）/);
+  const name=(nameFull.replace(/（[^（）]*）/g,'').replace(/^[\s①②③④⑤⑥⑦⑧⑨⑩◆*★※＊]+/,'').trim())||nameFull;
+  const qm=rest.match(/數量\s*(\d+)/),um=rest.match(/單價\s*(¥[\d,]+)/),ut=rest.match(UNIT_TAG);
+  let total='',ttag='';
+  if(rest.includes('＝')){
+    const last=rest.split('＝').pop();
+    const tax=last.match(/（含稅總價[^¥]*(¥[\d,]+)）/);
+    const tm=last.match(/總價\s*(¥[\d,]+)/)||last.match(/(¥[\d,]+)/);
+    total=tax?tax[1]:(tm?tm[1]:'');
+    ttag=tax?'含稅':((last.match(/(含稅|未稅|免稅)/)||[])[1]||'');
+  }else{
+    const m=rest.match(/¥[\d,]+/)||rest.match(/([\d,]+)\s*日圓/);
+    if(m)total=m[0].startsWith('¥')?m[0]:'¥'+m[1];
+  }
+  const notes=[...rest.matchAll(/[^，＝（）]*?(?:折扣|優惠券|折價|折抵|半價)[^，＝（）]*(?:（-¥[\d,]+）)?/g)].map(x=>x[0].trim()).filter(Boolean);
+  return {name,jp:jpm?jpm[1]:'',unit:um?um[1]:'',utag:ut&&ut[1]?ut[1].replace('原',''):'',qty:qm?qm[1]:'',total,ttag,note:notes.join('、'),hasNum:!!(um||qm||rest.includes('＝'))};
+}
+function parseDetail(desc){
+  const meta=[],items=[],tots=[],notes=[],other=[];let pay='',state='start',pending=null,lastOther='';
+  const lines=(desc||'').split('\n').map(l=>l.trim()).filter(Boolean);
+  for(const t of lines){
+    if(/^備註/.test(t)){notes.push(t.replace(/^備註[：:]?\s*/,''));state='notes';continue}
+    if(state==='notes'){notes.push(t);continue}
+    if(/^支付方式/.test(t)){pay=t.replace(/^支付方式[：:]?\s*/,'');state='after';continue}
+    if(/^(總額|金額結算|金額計算|結算金額|稅額資訊|結帳)[：:]?$/.test(t)){state='tots';continue}
+    if(HDR_ITEMS.test(t)){state='items';const v=t.split('：')[1];if(v&&v.trim()&&!/^[(（]/.test(v.trim()))other.push(t);continue}
+    const ki=t.indexOf('：'),kv=ki>0?[t.slice(0,ki).trim(),t.slice(ki+1).trim()]:null;
+    if(pending&&/^金額：/.test(t)){
+      const parts=t.replace(/^金額：/,'').split('｜');
+      pending.total=(parts[0].match(/¥[\d,]+/)||[parts[0]])[0];pending.note=parts.slice(1).join('、');items.push(pending);pending=null;continue}
+    if(/^\d+\.\s/.test(t)&&!t.includes('：')){
+      pending={name:t.replace(/^\d+\.\s*/,'').replace(/（[^（）]*）/g,'').trim(),jp:(t.match(/（([^（）]*)）/)||[])[1]||'',unit:'',utag:'',qty:'',total:'',ttag:'',note:''};state='items';continue}
+    if(/^[（(]條碼/.test(t)&&lastOther){
+      const m=t.match(/¥[\d,]+/);
+      items.push({name:lastOther.replace(/（[^（）]*）/g,'').trim(),jp:(lastOther.match(/（([^（）]*)）/)||[])[1]||'',unit:'',utag:'',qty:'',total:m?m[0]:'',ttag:'',note:''});
+      other.pop();lastOther='';state='items';continue}
+    if(kv&&!kv[1]){notes.push(kv[0]);continue}
+    const it=kv?parseItemLine(t):null;
+    const looksItem=it&&(it.hasNum||/^\d+\.\s/.test(t))&&it.total;
+    if(looksItem&&(state==='items'||state==='start'||state==='tots')){items.push(it);state='items';continue}
+    if(kv&&META_KEY.test(kv[0])&&(state==='start'||state==='items')){meta.push(kv);continue}
+    if(kv&&TOT_KEY.test(kv[0])){tots.push(kv);if(state!=='items'||/^(合計|小計|結帳|總額)/.test(kv[0]))state='tots';continue}
+    if(kv&&(state==='start'||state==='items')&&it&&it.total){items.push(it);state='items';continue}
+    if(kv&&state==='items'&&items.length){items[items.length-1].note=(items[items.length-1].note?items[items.length-1].note+'、':'')+t;continue}
+    if(kv&&state==='tots'){tots.push(kv);continue}
+    if(kv&&state==='start'){meta.push(kv);continue}
+    other.push(t);lastOther=t;
+  }
+  return {meta,items,tots,notes,pay,other};
+}
+function detailHTML(e){
+  const head=(e.addr?`<div class="dmeta"><span>📍</span><span>${esc(e.addr)}</span></div>`:'')+(e.flag?`<div class="dflag">⚠ ${esc(e.flag)}</div>`:'');
+  if(!e.desc)return head+'<div class="dnote">（記帳時沒有留下明細）</div>';
+  const p=parseDetail(e.desc);
+  const ok=p.items.length||p.tots.length||p.meta.length;
+  let o=head;
+  if(p.meta.length)o+=`<div class="dgrid">${p.meta.map(([k,v])=>`<span class="k">${esc(k.replace('購買店家／發行單位','發行單位').replace('購買店家','店家'))}</span><span>${esc(v)}</span>`).join('')}</div>`;
+  if(p.items.length){
+    const has=f=>p.items.some(i=>i[f]);
+    const tag=t=>t?` <small class="tg">${esc(t)}</small>`:'';
+    o+=`<table class="dit"><thead><tr><th>品項</th>${has('unit')?'<th class="n">單價</th>':''}${has('qty')?'<th class="n">數量</th>':''}<th class="n">小計</th></tr></thead><tbody>${p.items.map(i=>`<tr><td>${esc(i.name)}${i.jp?`<div class="jp">${esc(i.jp)}</div>`:''}${i.note?`<div class="dn">${esc(i.note)}</div>`:''}</td>${has('unit')?`<td class="n">${esc(i.unit)}${tag(i.utag)}</td>`:''}${has('qty')?`<td class="n">${esc(i.qty)}</td>`:''}<td class="n">${esc(i.total)}${tag(i.ttag)}</td></tr>`).join('')}</tbody></table>`;
+  }
+  if(p.pay)o+=`<div class="dpay">💳 ${esc(p.pay)}</div>`;
+  if(p.tots.length)o+=`<div class="dtot">${p.tots.map(([k,v])=>`<div class="${/^(結帳|合計|實付|總額|利用金額|免稅對象結帳)/.test(k)?'big':''}"><span>${esc(k)}</span><span>${esc(v)}</span></div>`).join('')}</div>`;
+  if(p.notes.length)o+=`<div class="dnote">📝 ${esc(p.notes.join('；'))}</div>`;
+  if(p.other.length&&!ok)o+=`<div class="draw">${esc(p.other.join('\n'))}</div>`;
+  else if(p.other.length)o+=`<div class="dnote small">${esc(p.other.join('；'))}</div>`;
+  if(ok)o+=`<details class="rawd"><summary>原始文字</summary><div class="draw">${esc(e.desc)}</div></details>`;
+  return o;
+}

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>花費分析 · 115 東京名古屋</title>
-<link rel="stylesheet" href="style.css?v=202610281504">
+<link rel="stylesheet" href="style.css?v=202610281509">
 <style>
 .chipgrp{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
 .fl{font-size:12px;color:var(--mute);margin-top:6px}
@@ -31,7 +31,7 @@ svg text{font-family:inherit}
 .dtile.on{border-color:var(--c);background:var(--chip);box-shadow:0 0 0 1px var(--c) inset}
 @media(max-width:600px){.daygrid{grid-template-columns:repeat(4,1fr)}}
 .flag{color:var(--acc);font-size:12px}
-.full{display:none;margin-top:6px;padding:8px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+.full{display:none;margin-top:6px;padding:8px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--ink);word-break:break-word}
 tr.open .full{display:block}
 .shop{font-weight:600}
 td .sm{font-size:12px;color:var(--mute)}
@@ -81,9 +81,9 @@ td .sm{font-size:12px;color:var(--mute)}
     <div class="tw"><table><thead><tr><th data-k="date">日期</th><th data-k="cat">類別</th><th data-k="place">店家／購買內容</th><th data-k="cur" class="hm">原幣</th><th data-k="twd" class="n">台幣</th></tr></thead><tbody id="tb"></tbody></table></div>
   </div>
 </main>
-<script src="data.js?v=202610281504"></script>
-<script src="expenses.js?v=202610281504"></script>
-<script src="app.js?v=202610281504"></script>
+<script src="data.js?v=202610281509"></script>
+<script src="expenses.js?v=202610281509"></script>
+<script src="app.js?v=202610281509"></script>
 <script>
 const E=window.EXPENSES;
 const CAT_COL={交通:'#3d6fb5',飲食:'#e8883a',生活:'#7a57b5',個人:'#b5578f',家居:'#4c9a5a',購物:'#d9534f',娛樂:'#c9a227',醫療:'#2f7d8c'};
@@ -174,7 +174,7 @@ function render(){
   const rows=[...L].sort((a,b)=>{
     const g=e=>sortK==='twd'?twd(e):sortK==='date'?e.date+e.time:(e[sortK]||'');
     const x=g(a),y=g(b);return (x>y?1:x<y?-1:0)*sortDir});
-  $('#tb').innerHTML=rows.map(e=>`<tr class="row"><td>${e.date.slice(5)}<br><small class="sub">${e.time}</small></td><td><div class="shop">${esc(label(e))}</div>${e.addr?`<div class="sm">📍 ${esc(e.addr)}</div>`:''}<div>${esc(e.sum)}</div><div class="sm"><span class="cdot" style="background:${subColor(e.sub)}"></span>${esc(e.cat)}・${esc(e.sub)}</div>${e.flag?`<div class="flag">⚠ ${esc(e.flag)}</div>`:''}<div class="full">${e.desc?esc(e.desc):'（記帳時沒有留下明細）'}</div></td><td class="n hm">${e.cur==='JPY'?'¥':'NT$'}${e.amt.toLocaleString()}</td><td class="n">${nt(twd(e))}${e.cur==='JPY'?`<br><small class="sub">¥${e.amt.toLocaleString()}</small>`:''}</td></tr>`).join('');
+  $('#tb').innerHTML=rows.map(e=>`<tr class="row"><td>${e.date.slice(5)}<br><small class="sub">${e.time}</small></td><td><div class="shop">${esc(label(e))}</div>${e.addr?`<div class="sm">📍 ${esc(e.addr)}</div>`:''}<div>${esc(e.sum)}</div><div class="sm"><span class="cdot" style="background:${subColor(e.sub)}"></span>${esc(e.cat)}・${esc(e.sub)}</div>${e.flag?`<div class="flag">⚠ ${esc(e.flag)}</div>`:''}<div class="full">${detailHTML(e)}</div></td><td class="n hm">${e.cur==='JPY'?'¥':'NT$'}${e.amt.toLocaleString()}</td><td class="n">${nt(twd(e))}${e.cur==='JPY'?`<br><small class="sub">¥${e.amt.toLocaleString()}</small>`:''}</td></tr>`).join('');
   $$('#tb tr').forEach(r=>r.onclick=()=>r.classList.toggle('open'));
 }
 $('#rate').value=RATE;
