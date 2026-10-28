@@ -229,3 +229,7 @@ body.showexp .sitem.day em{display:block}
 
 .mvrow{padding:0 4px}
 .mvrow .move{flex:none;max-width:88%}
+
+.bookend{display:flex;margin:8px 0}
+.bookend .bk{padding:7px 14px;border-radius:14px;background:var(--chip);font-weight:700;font-size:14px;border-left:5px solid var(--acc)}
+.bookend.back .bk{border-left-color:var(--acc2)}

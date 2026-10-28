@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>115 東京名古屋旅記</title>
-<link rel="stylesheet" href="style.css?v=202610281500">
+<link rel="stylesheet" href="style.css?v=202610281502">
 </head>
 <body>
 <header class="top">
@@ -27,10 +27,10 @@
   <div class="err" id="pwe"></div>
   <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn" id="pwc">取消</button><button class="btn pri">確認</button></div>
 </form></div>
-<script src="data.js?v=202610281500"></script>
-<script src="expenses.js?v=202610281500"></script>
-<script src="moves.js?v=202610281500"></script>
-<script src="app.js?v=202610281500"></script>
+<script src="data.js?v=202610281502"></script>
+<script src="expenses.js?v=202610281502"></script>
+<script src="moves.js?v=202610281502"></script>
+<script src="app.js?v=202610281502"></script>
 <script>
 const EX=EXPBY();
 const DEF_COVER={1:'d1s1_1',2:'d2s1_1',3:'d3s7_4',4:'d4s1_0',5:'d5s3_0',6:'d6s3_0',7:'d7s2_3',8:'d8s5_2'};
@@ -181,6 +181,12 @@ function itemHTML(s,it,j){
   const ctl=edit?`<div class="pctl"><button data-act="up" data-s="${s.id}" data-i="${j}">◀</button><button data-act="down" data-s="${s.id}" data-i="${j}">▶</button><button data-act="lock" data-s="${s.id}" data-i="${j}" title="${it.locked?'解除鎖定':'鎖定為主角照片'}">${it.locked?'🔒':'🔓'}</button><button data-act="del" data-s="${s.id}" data-i="${j}">🗑</button></div>`:'';
   return `<div class="ph${it.locked?' lk':''}"${it.locked?' hidden':''}>${img}${ctl}</div>`;
 }
+function bookHTML(d,k){
+  const t=titleOf('i'+d+k,((window.DAYINFO||{})[d]||{})[k]||'');
+  const edit=document.body.classList.contains('edit');
+  if(!t&&!edit)return '';
+  return `<div class="bookend ${k==='o'?'out':'back'}"><div class="bk${edit?' editable':''}"${edit?' contenteditable="true"':''} data-title="i${d}${k}">${esc(t)}</div></div>`;
+}
 function moveHTML(s,first){
   const edit=document.body.classList.contains('edit');
   if(!s.move&&!edit)return '';
@@ -207,10 +213,9 @@ function renderDay(d,keepScroll){
   $('#app').innerHTML=`${navHTML(d)}
   <h2 class="dt" style="color:${COLORS[d-1]}">Day ${d} · ${D.date}</h2>
   <div class="sub" data-title="d${d}">${esc(titleOf('d'+d,D.title))}</div>
-  <div class="dayline" data-title="i${d}">${esc(titleOf('i'+d,(window.DAYINFO||{})[d]||''))}</div>
   <div class="stats"><div class="stat only-exp"><b>${nt(sumTWD(dayExp(d)))}</b><span>本日花費（台幣）</span></div></div>
   <div id="dmap" class="cmap"></div>
-  <div id="spots">${sp.map((s,i)=>moveHTML(s,i===0)+spotHTML(d,s,i)).join('')}</div>
+  <div id="spots">${bookHTML(d,'o')}${sp.map((s,i)=>moveHTML(s,i===0)+spotHTML(d,s,i)).join('')}${bookHTML(d,'b')}</div>
   ${navHTML(d)}`;
   cuteMap($('#dmap'),d);
   $$('textarea.memo').forEach(t=>t.oninput=()=>{sp.find(x=>x.id===t.dataset.id).memo=t.value});
