@@ -86,13 +86,14 @@ function bindLB(){
 }
 
 /* ---------- 備註／標題／封面／照片清單（notes.json）---------- */
-let NOTES={},BASE_ITEMS={};
+let NOTES={},BASE_ITEMS={},BASE_NAME={},BASE_MOVE={};
 async function loadNotes(){
-  T.days.forEach(d=>d.spots.forEach(s=>{BASE_ITEMS[s.id]=JSON.stringify(s.items)}));
+  T.days.forEach(d=>d.spots.forEach(s=>{BASE_ITEMS[s.id]=JSON.stringify(s.items);BASE_NAME[s.id]=s.name;BASE_MOVE[s.id]=(window.MOVES||{})[s.id]||'';s.move=BASE_MOVE[s.id]}));
   try{const r=await fetch('notes.json?'+Date.now());if(r.ok)NOTES=await r.json()}catch(_){}
   T.covers=NOTES._covers||{};T.titles=NOTES._titles||{};
   const ph=NOTES._photos||{};
-  T.days.forEach(d=>d.spots.forEach(s=>{if(s.id in NOTES)s.memo=NOTES[s.id];if(ph[s.id])s.items=ph[s.id]}));
+  const nm=NOTES._names||{},mv=NOTES._moves||{};
+  T.days.forEach(d=>d.spots.forEach(s=>{if(s.id in NOTES)s.memo=NOTES[s.id];if(ph[s.id])s.items=ph[s.id];if(nm[s.id])s.name=nm[s.id];if(s.id in mv)s.move=mv[s.id]}));
 }
 function titleOf(k,def){return (T.titles&&T.titles[k])||def}
 function applyTitles(){
@@ -177,8 +178,8 @@ function ghToken(){
 const toB64=blob=>new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result.split(',')[1]);fr.readAsDataURL(blob)});
 async function saveNotes(){
   const bar=$('#savemsg');const say=t=>{if(bar)bar.textContent=t};
-  const out={_covers:T.covers||{},_titles:T.titles||{},_photos:{}};
-  T.days.forEach(d=>d.spots.forEach(s=>{out[s.id]=s.memo;if(JSON.stringify(s.items)!==BASE_ITEMS[s.id])out._photos[s.id]=s.items}));
+  const out={_covers:T.covers||{},_titles:T.titles||{},_photos:{},_names:{},_moves:{}};
+  T.days.forEach(d=>d.spots.forEach(s=>{out[s.id]=s.memo;if(s.name!==BASE_NAME[s.id])out._names[s.id]=s.name;if((s.move||'')!==BASE_MOVE[s.id])out._moves[s.id]=s.move||'';if(JSON.stringify(s.items)!==BASE_ITEMS[s.id])out._photos[s.id]=s.items}));
   const json=JSON.stringify(out,null,1);
   const tok=T.repo?ghToken():'';
   if(!tok){

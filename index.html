@@ -29,6 +29,7 @@
 </form></div>
 <script src="data.js"></script>
 <script src="expenses.js"></script>
+<script src="moves.js"></script>
 <script src="app.js"></script>
 <script>
 const EX=EXPBY();
@@ -179,7 +180,8 @@ function spotHTML(d,s,i){
   const exps=s.exp.map(x=>EX[x]);
   return `<section class="spot" id="${s.id}">
     <div class="t">${s.time}</div>
-    <h3><span class="num" style="background:${COLORS[d-1]}">${i+1}</span>${esc(s.name)}${s.items.some(x=>x.locked)?` <button class="lkicon" title="這裡有主角照片，點一下輸入密碼查看">🔒<small> 主角照片</small></button>`:''}</h3>
+    <h3><span class="num" style="background:${COLORS[d-1]}">${i+1}</span><span class="sname${edit?' editable':''}"${edit?' contenteditable="true"':''} data-name="${s.id}">${esc(s.name)}</span>${s.items.some(x=>x.locked)?` <button class="lkicon" title="這裡有主角照片，點一下輸入密碼查看">🔒<small> 主角照片</small></button>`:''}</h3>
+    ${(s.move||edit)?`<div class="move${edit?' editable':''}"${edit?' contenteditable="true"':''} data-move="${s.id}" data-ph="移動方式，例如：🚶 步行 5 分">${esc(s.move||'')}</div>`:''}
     ${edit?`<textarea class="memo" data-id="${s.id}" placeholder="寫下這個地方的回憶…">${esc(s.memo)}</textarea>`:`<div class="memo ${s.memo?'':'empty'}">${s.memo?esc(s.memo):'（還沒有備註）'}</div>`}
     ${(s.items.length||edit)?`<div class="grid" data-sid="${s.id}">${s.items.map((it,j)=>itemHTML(s,it,j)).join('')}</div>`:''}
     ${edit?`<div class="addrow"><label class="btn">＋ 新增照片<input type="file" accept="image/*" multiple hidden class="addph" data-s="${s.id}"></label>
@@ -223,6 +225,12 @@ document.addEventListener('click',async e=>{
     const imgs=$$('.ph',g).filter(x=>!x.hidden).map(x=>$('img',x));
     openLB(imgs.map(x=>x.dataset.full||x.src),imgs.indexOf(im));
   }
+});
+document.addEventListener('input',e=>{
+  const n=e.target.closest('[data-name]'),m=e.target.closest('[data-move]');
+  if(!n&&!m)return;
+  const s=spotsOf(curDay).find(x=>x.id===(n||m).dataset[n?'name':'move']);if(!s)return;
+  if(n)s.name=n.textContent;else s.move=m.textContent;
 });
 document.addEventListener('change',async e=>{
   const inp=e.target.closest('input.addph');if(!inp)return;
