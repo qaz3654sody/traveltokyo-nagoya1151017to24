@@ -226,6 +226,7 @@ function bindEdit(rerender){
 }
 
 /* ---------- 側邊欄（電腦版固定在左側，手機版從左滑出；群組與整個側邊欄都可以收合）---------- */
+const IC_FILM='<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="9" width="18" height="12" rx="2" fill="#5b6bd6"/><path d="M3 9l2.4-5 3.2 1.2L6 10zM9.5 5.3l3.2 1.2L10.2 11 7 9.8zM16 6.6l3.2 1.2L16.7 12l-3.2-1.2zM20 8.4l1 .4V10h-3.5z" fill="#f2c94c"/><path d="M10 13v6l5-3z" fill="#fff"/></svg>';
 const IC_MAP='<svg class="ic" viewBox="0 0 24 24"><path d="M2.5 6.5 9 4v14.5l-6.5 2.2z" fill="#6cc070"/><path d="M9 4l6 2.5v14.7L9 18.5z" fill="#f2c94c"/><path d="M15 6.5 21.5 4v14.7l-6.5 2.5z" fill="#56a6e8"/><path d="M9 4v14.5M15 6.5v14.7" stroke="#fff" stroke-width="1.2"/><circle cx="17.8" cy="9.5" r="2" fill="#e0533d" stroke="#fff" stroke-width="1"/></svg>',IC_COIN='<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#f5b942" stroke="#d98e1f" stroke-width="1.5"/><circle cx="12" cy="12" r="7.3" fill="#ffd566" stroke="#fff3c4" stroke-width="1"/><path d="M8.7 7.6 12 12.2l3.3-4.6M8.8 12.3h6.4M8.8 15h6.4M12 12.2V17.2" fill="none" stroke="#a85f00" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const EXP_SECTIONS=[['stats','📊 總覽數字'],['x-filter','🔎 篩選'],['x-pie','🥧 類別占比'],['x-line','📈 累計走勢'],['x-shop','🏪 幣別與商家'],['x-top','🏆 最大 10 筆'],['x-table','🧾 明細']];
 const gOpen=g=>lstore.get('sideg_'+g,'1')==='1';
@@ -239,7 +240,8 @@ function initSide(){
   document.body.classList.add('hasside');
   const nav=$('.bar nav');
   if(nav){const onExp=/expenses\.html/.test(location.pathname);
-    nav.innerHTML=`<a href="index.html#/" id="nHome" class="${onExp?'':'on'}">${IC_MAP}行程總覽</a><a href="expenses.html" class="${onExp?'on':''}">${IC_COIN}花費分析</a>`}
+    const onReel=/reel\.html/.test(location.pathname);
+    nav.innerHTML=`<a href="index.html#/" id="nHome" class="${onExp||onReel?'':'on'}">${IC_MAP}行程總覽</a><a href="expenses.html" class="${onExp?'on':''}">${IC_COIN}花費分析</a><a href="reel.html" class="${onReel?'on':''}">${IC_FILM}每日精華</a>`}
   if(lstore.get('sidecollapsed','0')==='1')document.body.classList.add('sidecollapsed');
   const bar=$('.bar>div');
   if(bar){const b=document.createElement('button');b.className='btn';b.id='btnMenu';b.textContent='☰';b.title='選單';bar.prepend(b);b.onclick=toggleSide}
@@ -256,13 +258,14 @@ function initSide(){
 }
 function updateSide(){
   const side=$('#side');if(!side)return;
-  const onExp=/expenses\.html/.test(location.pathname);
+  const onExp=/expenses\.html/.test(location.pathname),onReel=/reel\.html/.test(location.pathname);
   const m=location.hash.match(/#\/day\/(\d)/);const cur=m?+m[1]:0;
   const exp=window.EXPENSES||[];
   const grp=(g,head,body)=>`<div class="sgroup"><div class="sgh">${head}<button class="gtog" data-g="${g}" title="${gOpen(g)?'收合':'展開'}">${gOpen(g)?'▾':'▸'}</button></div>${gOpen(g)?`<div class="gbody">${body}</div>`:''}</div>`;
   side.innerHTML=`<div class="sidehd"><b>🧳 旅程選單</b><button class="btn" id="sideclose" title="收起側邊欄">«</button></div>`+
-  grp('home',`<a class="sitem hd ${!onExp&&!cur?'on':''}" href="index.html#/">${IC_MAP}行程總覽</a>`,
-    T.days.map(d=>`<a class="sitem day ${!onExp&&cur===d.day?'on':''}" href="index.html#/day/${d.day}" style="--c:${COLORS[d.day-1]}"><i>${d.day}</i><span><b>${d.date}</b><small>${esc(titleOf('d'+d.day,d.title))}</small></span><em class="only-exp">${nt(sumTWD(exp.filter(e=>e.day===d.day)))}</em></a>`).join(''))+
+  grp('home',`<a class="sitem hd ${!onExp&&!onReel&&!cur?'on':''}" href="index.html#/">${IC_MAP}行程總覽</a>`,
+    T.days.map(d=>`<a class="sitem day ${!onExp&&!onReel&&cur===d.day?'on':''}" href="index.html#/day/${d.day}" style="--c:${COLORS[d.day-1]}"><i>${d.day}</i><span><b>${d.date}</b><small>${esc(titleOf('d'+d.day,d.title))}</small></span><em class="only-exp">${nt(sumTWD(exp.filter(e=>e.day===d.day)))}</em></a>`).join(''))+
+  `<a class="sitem hd ${onReel?'on':''}" href="reel.html" style="margin-top:6px">${IC_FILM}每日精華</a>`+
   grp('exp',`<a class="sitem hd ${onExp?'on':''}" href="expenses.html">${IC_COIN}花費分析</a>`,
     EXP_SECTIONS.map(([id,t])=>`<a class="sitem sub" href="expenses.html#${id}">${t}</a>`).join(''))+
   `<div class="sgrp">工具</div>

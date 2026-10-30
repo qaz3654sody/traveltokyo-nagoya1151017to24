@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>每日精華 · 115 東京名古屋</title>
+<link rel="stylesheet" href="style.css?v=202610301037">
+<style>
+.stagewrap{margin:10px 0}
+#stage{position:relative;width:100%;aspect-ratio:16/9;max-height:74vh;border-radius:18px;overflow:hidden;background:#111;border:1px solid var(--line);user-select:none;-webkit-user-select:none}
+@media(max-width:700px){#stage{aspect-ratio:4/5}}
+#stage:fullscreen{max-height:none;border-radius:0;aspect-ratio:auto;width:100vw;height:100vh}
+.slide{position:absolute;inset:0;opacity:0;transition:opacity .7s;overflow:hidden}
+.slide.in{opacity:1}
+.slide .bg{position:absolute;inset:-6%;background-size:cover;background-position:center;filter:blur(26px) brightness(.6);transform:scale(1.1)}
+.slide .fg{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.slide video.fg{background:#000}
+.slide.in .kb{animation:kb 7s ease-out forwards}
+@keyframes kb{from{transform:scale(1) translate(0,0)}to{transform:scale(1.07) translate(var(--kx,0),var(--ky,0))}}
+.slide.title,.slide.end{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff;padding:24px}
+.slide.title h2,.slide.end h2{font-size:clamp(34px,8vw,72px);margin:0;letter-spacing:2px;text-shadow:0 2px 14px rgba(0,0,0,.35)}
+.slide .sub2{font-size:clamp(15px,3.2vw,26px);margin-top:8px;opacity:.95}
+.slide .sub3{font-size:clamp(12px,2.4vw,17px);margin-top:14px;opacity:.85;max-width:90%}
+.cap{position:absolute;left:0;right:0;bottom:0;padding:34px 16px 14px;background:linear-gradient(transparent,rgba(0,0,0,.72));color:#fff;transform:translateY(12px);opacity:0;transition:.6s .15s}
+.slide.in .cap{transform:none;opacity:1}
+.cap .ct{display:inline-block;background:var(--c,#d9534f);padding:1px 9px;border-radius:10px;font-size:12px;font-weight:700;margin-right:8px}
+.cap b{font-size:clamp(15px,3.4vw,22px)}
+.cap small{display:block;font-size:12px;opacity:.85;margin-top:3px}
+#segs{position:absolute;top:8px;left:10px;right:10px;display:flex;gap:3px;z-index:5}
+#segs i{flex:1;height:3px;border-radius:2px;background:rgba(255,255,255,.35);overflow:hidden}
+#segs i b{display:block;height:100%;width:0;background:#fff}
+.tap{position:absolute;top:0;bottom:60px;width:34%;z-index:4;cursor:pointer}
+.tap.l{left:0}.tap.r{right:0}
+#bigplay{position:absolute;inset:0;z-index:6;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35);color:#fff;font-size:70px;cursor:pointer}
+#bigplay span{width:100px;height:100px;border-radius:50%;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding-left:8px}
+.ctrls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+.ctrls .btn{min-width:44px}
+.chapters{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 14px}
+.chapters .chip{font-size:12.5px}
+.daygrid2{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin:10px 0}
+.dt2{border:2px solid var(--line);border-radius:12px;padding:6px 2px;text-align:center;cursor:pointer;background:var(--card);line-height:1.25}
+.dt2 i{display:flex;align-items:center;justify-content:center;width:24px;height:24px;margin:0 auto 2px;border-radius:50%;background:var(--c);color:#fff;font-style:normal;font-weight:700;font-size:13px}
+.dt2 b{display:block;font-size:12px}.dt2 small{display:block;font-size:10px;color:var(--mute)}
+.dt2.on{border-color:var(--c);background:var(--chip)}
+.dt2.off{opacity:.45;cursor:default}
+@media(max-width:600px){.daygrid2{grid-template-columns:repeat(4,1fr)}}
+.note2{font-size:13px;color:var(--mute);margin:6px 0}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>🎬 每日精華</h1>
+  <div class="sub">把每天的照片和影片串成小短片，自動播放</div>
+</header>
+<div class="bar"><div>
+  <nav></nav>
+  <label class="sw"><input type="checkbox" id="tPp"><i></i>主角 🔒</label>
+</div></div>
+<main>
+  <div class="daygrid2" id="days"></div>
+  <div class="stagewrap">
+    <div id="stage">
+      <div id="segs"></div>
+      <div class="tap l" id="tapl"></div><div class="tap r" id="tapr"></div>
+      <div id="bigplay"><span>▶</span></div>
+    </div>
+    <div class="ctrls">
+      <button class="btn" id="bPrev" title="上一張">⏮</button>
+      <button class="btn pri" id="bPlay" title="播放／暫停">▶ 播放</button>
+      <button class="btn" id="bNext" title="下一張">⏭</button>
+      <button class="btn" id="bSpeed" title="播放速度">1×</button>
+      <button class="btn" id="bFull" title="全螢幕">⛶ 全螢幕</button>
+      <span class="sub" id="count"></span>
+    </div>
+    <div class="note2" id="note"></div>
+    <div class="chapters" id="chapters"></div>
+  </div>
+</main>
+<script src="data.js?v=202610301037"></script>
+<script src="expenses.js?v=202610301037"></script>
+<script src="moves.js?v=202610301037"></script>
+<script src="reels.js?v=202610301037"></script>
+<script src="app.js?v=202610301037"></script>
+<script>
+const READY=Object.keys(window.REEL_VIDEOS||{}).map(Number);
+let day=+(location.hash.replace('#','')||0)||READY[0]||1;
+let slides=[],cur=0,playing=false,speed=1,raf=0,tm=0,tStart=0,elapsed=0,tDur=3200,token=0,started=false;
+const pick=(list,n)=>{if(list.length<=n)return list;const out=[];for(let i=0;i<n;i++)out.push(list[Math.round(i*(list.length-1)/(n-1))]);return out};
+const srcOf=async it=>it.locked?await decFile(it.id):srcFull(it);
+
+function buildSlides(){
+  const D=T.days[day-1],people=$('#tPp').checked&&!!cryptoKey,vids=(window.REEL_VIDEOS||{})[day]||{};
+  const out=[{type:'title'}];
+  D.spots.forEach((s,k)=>{
+    const plain=pick(s.items.filter(i=>!i.locked),4),ppl=people?pick(s.items.filter(i=>i.locked),3):[];
+    const via=pick((s.via||[]).filter(i=>people||!i.locked),2);
+    const media=[];
+    const a=[...plain],b=[...ppl];
+    while(a.length||b.length){if(a.length)media.push({type:'photo',it:a.shift()});if(b.length)media.push({type:'photo',it:b.shift()})}
+    via.forEach(it=>media.unshift({type:'photo',it}));
+    (vids[s.id]||[]).forEach((v,j)=>media.splice(Math.min(media.length,1+j*2),0,{type:'video',v}));
+    media.forEach(m=>out.push({...m,spot:s,k}));
+  });
+  out.push({type:'end'});
+  slides=out;
+}
+function chapters(){
+  const D=T.days[day-1];const first={};
+  slides.forEach((s,i)=>{if(s.spot&&first[s.k]===undefined)first[s.k]=i});
+  $('#chapters').innerHTML=Object.entries(first).map(([k,i])=>`<span class="chip" data-i="${i}">${D.spots[k].time} ${esc(D.spots[k].name.replace(/（.*$/,''))}</span>`).join('');
+  $$('#chapters .chip').forEach(c=>c.onclick=()=>{go(+c.dataset.i)});
+}
+function segs(){$('#segs').innerHTML=slides.map(()=>'<i><b></b></i>').join('')}
+function setProg(p){
+  const bs=$$('#segs b');
+  bs.forEach((b,i)=>b.style.width=(i<cur?'100%':i>cur?'0':Math.min(100,Math.max(0,p*100))+'%'));
+}
+async function show(i){
+  const my=++token;cur=Math.max(0,Math.min(slides.length-1,i));
+  const s=slides[cur],D=T.days[day-1],col=COLORS[day-1],st=$('#stage');
+  const el=document.createElement('div');el.className='slide '+s.type;el.style.setProperty('--c',col);
+  let video=null;
+  if(s.type==='title'){
+    el.style.background=`linear-gradient(135deg,${col},#2b2622)`;
+    const n=D.spots.length;
+    el.innerHTML=`<h2>Day ${day}</h2><div class="sub2">${esc(D.date)}　${esc(titleOf('d'+day,D.title))}</div><div class="sub3">${esc(titleOf('i'+day+'o',((window.DAYINFO||{})[day]||{}).o||''))}</div>`;
+    tDur=3200;
+  }else if(s.type==='end'){
+    el.style.background=`linear-gradient(135deg,#2b2622,${col})`;
+    el.innerHTML=`<h2>Day ${day} 完</h2><div class="sub2">${esc(titleOf('i'+day+'b',((window.DAYINFO||{})[day]||{}).b||''))}</div><div class="sub3">${day<T.days.length&&READY.includes(day+1)?'按 ⏭ 看下一天':'謝謝收看 ❤️'}</div>`;
+    tDur=4200;
+  }else{
+    const sp=s.spot,mv=sp.move?`<small>${esc(sp.move)}</small>`:'';
+    const cap=`<div class="cap"><span class="ct">${esc(sp.time)}</span><b>${esc(sp.name.replace(/（.*$/,''))}</b>${mv}</div>`;
+    if(s.type==='photo'){
+      let url;try{url=await srcOf(s.it)}catch(e){url=''}
+      if(my!==token)return;
+      const kx=(Math.random()*2-1)*2.5+'%',ky=(Math.random()*2-1)*2+'%';
+      el.innerHTML=`<div class="bg" style="background-image:url('${url}')"></div><img class="fg kb" src="${url}" style="--kx:${kx};--ky:${ky}">${cap}`;
+      tDur=3200;
+    }else{
+      el.innerHTML=`<div class="bg" style="background-image:url('${s.v.poster}')"></div><video class="fg" src="${s.v.src}" poster="${s.v.poster}" muted playsinline preload="auto"></video>${cap}`;
+      video=el.querySelector('video');video.playbackRate=speed;
+      tDur=7000;
+    }
+  }
+  st.appendChild(el);
+  requestAnimationFrame(()=>el.classList.add('in'));
+  $$('#stage .slide').forEach(o=>{if(o!==el){const v=o.querySelector('video');if(v)v.pause();o.classList.remove('in');setTimeout(()=>o.remove(),800)}});
+  $('#count').textContent=`${cur+1} / ${slides.length}`;
+  elapsed=0;tStart=performance.now();setProg(0);
+  if(video){
+    video.onloadedmetadata=()=>{if(isFinite(video.duration))tDur=Math.min(10000,video.duration*1000)};
+    video.onended=()=>{if(playing&&my===token)next()};
+    if(playing)video.play().catch(()=>{});
+    el._video=video;
+  }
+  // 預載下一張
+  const nx=slides[cur+1];if(nx&&nx.type==='photo'&&!nx.it.locked){const im=new Image();im.src=srcFull(nx.it)}
+}
+function curVideo(){const els=$$('#stage .slide.in');const e=els[els.length-1];return e&&e._video}
+function loop(ts){
+  if(!playing)return;
+  const v=curVideo();let p;
+  if(v&&isFinite(v.duration)&&v.duration>0)p=v.currentTime/v.duration;
+  else p=(ts-tStart)/(tDur/speed);
+  setProg(p);
+  if(p>=1)next();
+}
+function startLoop(){clearInterval(tm);tm=setInterval(()=>loop(performance.now()),60)}
+function stopLoop(){clearInterval(tm)}
+function play(){
+  if(playing)return;playing=true;started=true;$('#bigplay').style.display='none';$('#bPlay').textContent='⏸ 暫停';
+  tStart=performance.now()-elapsed;const v=curVideo();if(v){v.playbackRate=speed;v.play().catch(()=>{})}
+  startLoop();
+}
+function pause(){
+  if(!playing)return;playing=false;stopLoop();elapsed=performance.now()-tStart;$('#bPlay').textContent='▶ 播放';
+  const v=curVideo();if(v)v.pause();
+}
+function go(i){const was=playing;stopLoop();elapsed=0;show(i).then(()=>{if(was)startLoop()})}
+function next(){if(cur>=slides.length-1){pause();$('#bigplay').style.display='flex';$('#bigplay span').textContent='↻';cur=-1;return}go(cur+1)}
+function prev(){go(Math.max(0,cur-1))}
+
+function renderDays(){
+  $('#days').innerHTML=T.days.map(d=>`<div class="dt2 ${d.day===day?'on':''} ${READY.includes(d.day)?'':'off'}" data-d="${d.day}" style="--c:${COLORS[d.day-1]}" title="${READY.includes(d.day)?'':'製作中'}"><i>${d.day}</i><b>${d.date.split(' ')[0]}</b><small>${READY.includes(d.day)?d.date.split(' ')[1]:'製作中'}</small></div>`).join('');
+  $$('#days .dt2').forEach(t=>t.onclick=()=>{const d=+t.dataset.d;if(!READY.includes(d))return;day=d;location.hash=d;load()});
+}
+function load(){
+  pause();elapsed=0;token++;
+  $$('#stage .slide').forEach(o=>o.remove());
+  renderDays();buildSlides();segs();chapters();
+  $('#note').textContent=$('#tPp').checked&&cryptoKey?'已顯示主角照片':'沒有顯示主角照片（上方開啟「主角」並輸入密碼後，會加入有你們的照片）';
+  $('#bigplay').style.display='flex';$('#bigplay span').textContent='▶';
+  cur=0;show(0);
+}
+$('#bigplay').onclick=()=>{if(cur<0)cur=0;if(!playing){if(slides.length&&!$('#stage .slide'))show(0);play()}};
+$('#bPlay').onclick=()=>playing?pause():(cur<0?(cur=0,go(0),play()):play());
+$('#bNext').onclick=()=>{if(cur<slides.length-1)go(cur+1)};
+$('#bPrev').onclick=prev;
+$('#tapl').onclick=prev;$('#tapr').onclick=()=>{if(cur<slides.length-1)go(cur+1)};
+$('#bSpeed').onclick=()=>{speed=speed===1?1.5:speed===1.5?2:speed===2?.5:1;$('#bSpeed').textContent=speed+'×';const v=curVideo();if(v)v.playbackRate=speed};
+$('#bFull').onclick=()=>{const st=$('#stage');document.fullscreenElement?document.exitFullscreen():(st.requestFullscreen&&st.requestFullscreen())};
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')$('#bNext').click();else if(e.key==='ArrowLeft')prev();else if(e.key===' '){e.preventDefault();$('#bPlay').click()}});
+const tPp=$('#tPp');
+tPp.onchange=async()=>{
+  if(tPp.checked){if(!await ensureUnlocked()){tPp.checked=false;return}store.set('showpp','1')}else store.set('showpp','0');
+  load();
+};
+loadNotes().then(async()=>{
+  initSide();
+  if(store.get('showpp','0')==='1'){const ok=await ensureUnlocked();tPp.checked=ok}
+  load();
+});
+</script>
+</body>
+</html>
