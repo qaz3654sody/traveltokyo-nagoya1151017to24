@@ -16,7 +16,7 @@ const EXPBY=()=>Object.fromEntries((window.EXPENSES||[]).map(e=>[e.id,e]));
 /* ---------- 開關 ---------- */
 function bindExpToggle(onchange){
   const t=$('#tExp');if(!t)return;
-  t.checked=store.get('showexp','0')==='1';document.body.classList.toggle('showexp',t.checked);
+  t.checked=store.get('showexp','1')==='1';document.body.classList.toggle('showexp',t.checked);
   t.onchange=()=>{store.set('showexp',t.checked?'1':'0');document.body.classList.toggle('showexp',t.checked);onchange&&onchange()};
 }
 
