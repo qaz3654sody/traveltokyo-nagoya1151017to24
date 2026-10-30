@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>花費分析 · 115 東京名古屋</title>
-<link rel="stylesheet" href="style.css?v=202610301026">
+<link rel="stylesheet" href="style.css?v=202610301030">
 <style>
 .chipgrp{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 10px}
 .fl{font-size:12px;color:var(--mute);margin-top:6px}
@@ -61,17 +61,13 @@ td .sm{font-size:12px;color:var(--mute)}
       <div><label>關鍵字（名稱／商家／明細）</label><input id="fQ" placeholder="例如：唐吉訶德"></div>
       <div><label>台幣金額 ≥</label><input id="fMin" type="number" min="0" placeholder="0"></div>
     </div>
-    <div style="margin-top:8px"><button class="btn" id="reset">清除篩選</button> <span class="sub" id="cnt"></span></div>
+    <div style="margin-top:8px"><button class="btn" id="btnNoFH" title="把機票和住宿費排除在統計之外">✈️🏨 扣除機票＋住宿</button> <button class="btn" id="reset">清除篩選</button> <span class="sub" id="cnt"></span></div>
   </div>
   <div class="twocol" id="x-pie">
     <div class="panel"><b>主類別占比</b><div class="donutwrap" id="dCat"></div></div>
     <div class="panel"><b>子類別占比（前 8）</b><div class="donutwrap" id="dSub"></div></div>
   </div>
   <div class="panel" id="x-line"><b>累計花費走勢（台幣）</b><div id="lineWrap"></div></div>
-  <div class="twocol" id="x-day">
-    <div class="panel"><b>依天數</b><div class="bars alt" id="bDay"></div></div>
-    <div class="panel"><b>依時段</b><div class="bars" id="bHour"></div></div>
-  </div>
   <div class="twocol" id="x-shop">
     <div class="panel"><b>日圓／台幣占比</b><div class="donutwrap" id="dCur"></div></div>
     <div class="panel"><b>依商家（前 10）</b><div class="bars alt" id="bShop"></div></div>
@@ -81,9 +77,9 @@ td .sm{font-size:12px;color:var(--mute)}
     <div class="tw"><table><thead><tr><th data-k="date">日期</th><th data-k="cat">類別</th><th data-k="place">店家／購買內容</th><th data-k="cur" class="hm">原幣</th><th data-k="twd" class="n">台幣</th></tr></thead><tbody id="tb"></tbody></table></div>
   </div>
 </main>
-<script src="data.js?v=202610301026"></script>
-<script src="expenses.js?v=202610301026"></script>
-<script src="app.js?v=202610301026"></script>
+<script src="data.js?v=202610301030"></script>
+<script src="expenses.js?v=202610301030"></script>
+<script src="app.js?v=202610301030"></script>
 <script>
 const E=window.EXPENSES;
 const CAT_COL={交通:'#3d6fb5',飲食:'#e8883a',生活:'#7a57b5',個人:'#b5578f',家居:'#4c9a5a',購物:'#d9534f',娛樂:'#c9a227',醫療:'#2f7d8c'};
@@ -98,7 +94,7 @@ const sel={day:new Set(),cat:new Set(),sub:new Set(),cur:new Set()};
 const uniq=a=>[...new Set(a)];
 const CATS=uniq(E.map(e=>e.cat));
 const SUBOF=cat=>CATS.filter(c=>!cat.size||cat.has(c)).flatMap(c=>SUBS_BY_CAT[c]||[]);
-let sortK='date',sortDir=1;
+let sortK='date',sortDir=1,noFH=false;
 const label=e=>e.place||e.name||e.shop||e.sub;
 
 function chips(id,items,set,render,colorFn){
@@ -116,7 +112,7 @@ function drawFilters(){
 }
 function filtered(){
   const q=$('#fQ').value.trim().toLowerCase(),m=+$('#fMin').value||0;
-  return E.filter(e=>(!sel.day.size||sel.day.has(String(e.day)))&&(!sel.cat.size||sel.cat.has(e.cat))&&(!sel.sub.size||sel.sub.has(e.sub))&&(!sel.cur.size||sel.cur.has(e.cur))&&twd(e)>=m&&
+  return E.filter(e=>(!sel.day.size||sel.day.has(String(e.day)))&&(!sel.cat.size||sel.cat.has(e.cat))&&(!sel.sub.size||sel.sub.has(e.sub))&&(!sel.cur.size||sel.cur.has(e.cur))&&!(noFH&&(e.sub==='飛機'||e.sub==='住宿'))&&twd(e)>=m&&
     (!q||(e.place+e.addr+e.sum+e.name+e.shop+e.desc+e.sub+e.cat).toLowerCase().includes(q)));
 }
 function group(list,key){const m={};list.forEach(e=>{const k=key(e);m[k]=(m[k]||0)+twd(e)});return Object.entries(m).sort((a,b)=>b[1]-a[1])}
@@ -161,14 +157,11 @@ function render(){
     [nt(tot/days),'平均每天'],
     [nt(L.length?Math.max(...L.map(twd)):0),'單筆最高']
   ].map(([b,s])=>`<div class="stat"><b>${b}</b><span>${s}</span></div>`).join('');
-  $('#cnt').textContent=`共 ${L.length} 筆`;
+  $('#cnt').textContent=`共 ${L.length} 筆`+(noFH?'（已扣除機票＋住宿）':'');
   donut('#dCat',group(L,e=>e.cat),0,keyColor);
   donut('#dSub',group(L,e=>e.sub),8,keyColor);
   donut('#dCur',group(L,e=>e.cur==='JPY'?'日圓花費（換算）':'台幣花費'));
   lineChart(L);
-  bars('#bDay',group(L,e=>'Day '+e.day).sort((a,b)=>a[0].localeCompare(b[0],'en',{numeric:true})));
-  const order=['凌晨 0–6','早上 6–11','中午 11–14','下午 14–18','晚上 18–24'];
-  bars('#bHour',group(L,e=>hourBucket(e.time)).sort((a,b)=>order.indexOf(a[0])-order.indexOf(b[0])));
   bars('#bShop',group(L,e=>e.place||'（未填商家）'),10);
   $('#top10').innerHTML=[...L].sort((a,b)=>twd(b)-twd(a)).slice(0,10).map((e,i)=>`<div><b>${i+1}</b><span class="g">${esc(label(e))}<br><small>Day ${e.day} · ${esc(e.sum.slice(0,36))}</small></span><span>${nt(twd(e))}</span></div>`).join('')||'<span class="sub">沒有資料</span>';
   const rows=[...L].sort((a,b)=>{
@@ -179,7 +172,8 @@ function render(){
 }
 $('#rate').value=RATE;
 ['fQ','fMin'].forEach(i=>$('#'+i).oninput=render);
-$('#reset').onclick=()=>{Object.values(sel).forEach(s=>s.clear());$('#fQ').value='';$('#fMin').value='';update()};
+$('#btnNoFH').onclick=()=>{noFH=!noFH;$('#btnNoFH').classList.toggle('pri',noFH);$('#btnNoFH').textContent=noFH?'✅ 已扣除機票＋住宿（再按一次恢復）':'✈️🏨 扣除機票＋住宿';update()};
+$('#reset').onclick=()=>{noFH=false;$('#btnNoFH').classList.remove('pri');$('#btnNoFH').textContent='✈️🏨 扣除機票＋住宿';Object.values(sel).forEach(s=>s.clear());$('#fQ').value='';$('#fMin').value='';update()};
 $('#rate').oninput=()=>{const v=parseFloat($('#rate').value);if(v>0){RATE=v;lstore.set('rate',v);render()}};
 $$('th[data-k]').forEach(th=>th.onclick=()=>{const k=th.dataset.k;sortDir=sortK===k?-sortDir:1;sortK=k;render()});
 update();
