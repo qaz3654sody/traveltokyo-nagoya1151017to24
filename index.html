@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>115 東京名古屋旅記</title>
-<link rel="stylesheet" href="style.css?v=202610301123">
+<link rel="stylesheet" href="style.css?v=202610301128">
 </head>
 <body>
 <header class="top">
@@ -27,10 +27,10 @@
   <div class="err" id="pwe"></div>
   <div style="display:flex;gap:8px;justify-content:flex-end"><button type="button" class="btn" id="pwc">取消</button><button class="btn pri">確認</button></div>
 </form></div>
-<script src="data.js?v=202610301123"></script>
-<script src="expenses.js?v=202610301123"></script>
-<script src="moves.js?v=202610301123"></script>
-<script src="app.js?v=202610301123"></script>
+<script src="data.js?v=202610301128"></script>
+<script src="expenses.js?v=202610301128"></script>
+<script src="moves.js?v=202610301128"></script>
+<script src="app.js?v=202610301128"></script>
 <script>
 const EX=EXPBY();
 const DEF_COVER={1:'d1s1_1',2:'d2s1_1',3:'d3s7_4',4:'d4s1_0',5:'d5s3_0',6:'d6s3_0',7:'d7s2_3',8:'d8s5_2'};
@@ -41,7 +41,7 @@ const coverItem=d=>{
   const all=spotsOf(d).flatMap(plain);
   return all.find(i=>i.id===id)||all[0];
 };
-const dayExp=d=>spotsOf(d).flatMap(s=>s.exp.map(i=>EX[i]));
+const dayExp=d=>spotsOf(d).flatMap(s=>[...s.exp,...(s.mvExp||[])].map(i=>EX[i]));
 const geo=s=>s.lat!=null&&s.lon!=null&&s.lat>30;
 const shortDate=d=>T.days[d-1].date;
 
@@ -187,12 +187,13 @@ function bookHTML(d,k){
   if(!t&&!edit)return '';
   return `<div class="bookend ${k==='o'?'out':'back'}"><div class="bk${edit?' editable':''}"${edit?' contenteditable="true"':''} data-title="i${d}${k}">${esc(t)}</div></div>`;
 }
+const expItemHTML=e=>`<details class="xi"><summary><span class="xl"><b>${esc(e.place||e.name||e.shop||e.sub)}</b>${e.sum?`<br><small>${esc(e.sum)}</small>`:''}<br><small class="xc">${esc(e.cat)}・${esc(e.sub)} · ${e.time}</small></span><span class="xr">${money(e)}</span></summary><div class="xd">${detailHTML(e)}</div></details>`;
 function moveHTML(s,first){
   const edit=document.body.classList.contains('edit');
-  const via=s.via||[];
-  if(!s.move&&!edit&&!via.length)return '';
+  const via=s.via||[],mx=(s.mvExp||[]).map(i=>EX[i]);
+  if(!s.move&&!edit&&!via.length&&!mx.length)return '';
   const pill=(s.move||edit)?`<div class="move${edit?' editable':''}"${edit?' contenteditable="true"':''} data-move="${s.id}" data-ph="${first?'出發方式':'從上一站怎麼過來'}，例如：🚶 步行 5 分">${esc(s.move||'')}</div>`:'';
-  return `<div class="mvrow${first?' first':''}">${pill}${via.length?`<div class="mvphotos">${via.map((it,j)=>itemHTML(s,it,j,'via')).join('')}</div>`:''}</div>`;
+  return `<div class="mvrow${first?' first':''}">${pill}${via.length?`<div class="mvphotos">${via.map((it,j)=>itemHTML(s,it,j,'via')).join('')}</div>`:''}${mx.length?`<div class="exp mvx">${mx.map(expItemHTML).join('')}</div>`:''}</div>`;
 }
 function spotHTML(d,s,i){
   const edit=document.body.classList.contains('edit');
@@ -204,7 +205,7 @@ function spotHTML(d,s,i){
     ${(s.items.length||edit)?`<div class="grid" data-sid="${s.id}">${s.items.map((it,j)=>itemHTML(s,it,j)).join('')}</div>`:''}
     ${edit?`<div class="addrow"><label class="btn">＋ 新增照片<input type="file" accept="image/*" multiple hidden class="addph" data-s="${s.id}"></label>
       <label class="sw"><input type="checkbox" class="newlock"><i></i>新增為主角照片（鎖定）</label></div>`:''}
-    ${exps.length?`<div class="exp">${exps.map(e=>`<details class="xi"><summary><span class="xl"><b>${esc(e.place||e.name||e.shop||e.sub)}</b>${e.sum?`<br><small>${esc(e.sum)}</small>`:''}<br><small class="xc">${esc(e.cat)}・${esc(e.sub)} · ${e.time}</small></span><span class="xr">${money(e)}</span></summary><div class="xd">${detailHTML(e)}</div></details>`).join('')}<div class="sum"><span>小計（台幣）</span><span>${nt(sumTWD(exps))}</span></div></div>`:''}
+    ${exps.length?`<div class="exp">${exps.map(expItemHTML).join('')}<div class="sum"><span>小計（台幣）</span><span>${nt(sumTWD(exps))}</span></div></div>`:''}
   </section>`;
 }
 let curDay=0;

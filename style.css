@@ -277,3 +277,5 @@ body.showexp .sitem.day em{display:block}
 .dcard{min-width:0;overflow:hidden}
 .dcard img{max-width:100%;min-width:0}
 @media(max-width:900px){.dgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.mvrow .mvx{flex-basis:100%;margin:0 0 6px;padding:6px 10px;background:var(--card);border:1px dashed var(--line);border-radius:10px}
